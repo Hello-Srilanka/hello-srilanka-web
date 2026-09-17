@@ -1,6 +1,6 @@
 # HelloSriLanka
 
-A cinematic, editorial **public landing page only**, built with Next.js 16.3.5, App Router, TypeScript, Tailwind CSS 4, and Lucide React. Server Components compose the page; interaction-specific components use the client boundary.
+A cinematic Sri Lanka travel website with a working, read-only itinerary planner, built with Next.js 16.3.5, App Router, TypeScript, Tailwind CSS 4, and Lucide React. Server Components compose the page; interaction-specific components use the client boundary.
 
 ## Run locally
 
@@ -19,13 +19,70 @@ npm run typecheck
 npm run build
 ```
 
-The production build exports static HTML, CSS, JavaScript, responsive photography and the hero films into `out/`. Deploy that folder to a static host with video MIME types and HTTP byte-range support. To inspect HTML and photography locally (use `npm run dev` or a byte-range-capable server for video seeking):
+The application now requires a Next.js **Node server**, because itinerary generation runs on the server. The old `out/` directory is no longer the deployable application.
 
 ```sh
-python3 -m http.server 4173 --directory out
+npm run build
+npm run start
 ```
 
-Open http://localhost:4173. The build uses Next.js's supported Webpack compiler because the current environment blocks Turbopack's CSS worker process during production compilation.
+The build uses Next.js’s Webpack compiler. Serve media with correct MIME types and byte-range support.
+
+## Planning MVP
+
+Every existing planning CTA opens `/plan`:
+
+**Welcome → trip basics → interests → travel style → review → generation → read-only itinerary → PNG export.**
+
+- Dates or 1–21 relative days; arrival/departure locations and optional local flight times; adults, children and conditional ages.
+- Ten photographic interests, three paces, budget currency and per-person/group basis, international-flight inclusion, transport/stay preferences, must-visits and accessibility notes.
+- Accessible labelled controls, visible progress, review edit links, refresh recovery and local persistence. No account creation.
+- Full-width expandable itinerary cards with flexible periods, connected transfers, overnight suggestions, provider/source links, qualified costs, assumptions and caveats. **No maps**, per the MVP scope. No itinerary editing, chat, sharing or booking management.
+- Whole-trip and selected-day PNG preview, optional costs, 1440 × 1920 output, pagination and individual downloads. The dedicated text layout avoids cross-origin image dependencies; fonts have a bounded system-font fallback.
+- Preferences and the latest completed itinerary are stored in browser localStorage (`hellosrilanka-planner-v1`). New trips retain access to the latest itinerary until a replacement completes. Storage failures are explained in the UI.
+
+### Live generation or sample mode
+
+Copy `.env.example` to `.env.local`, then configure:
+
+```dotenv
+OPENAI_API_KEY=your_server_side_key
+OPENAI_MODEL=gpt-6-astra
+```
+
+With no API key, or with `ITINERARY_MODE=sample`, the complete interface uses explicitly labelled illustrative results. Sample routes are presets; interests affect themes, but special requirements, prices, availability and route suitability are **not** live-verified. Sample mode never falls back silently after a live failure.
+
+Live generation uses the OpenAI Responses API in two actual processing stages: web-search research, then strict structured output. Model selection is configurable. The implementation follows the official [web-search guide](https://developers.openai.com/api/docs/guides/tools-web-search) and [Structured Outputs guide](https://developers.openai.com/api/docs/guides/structured-outputs), checked during implementation.
+
+Research requests official tourism, attraction, transport and hotel sources; it preserves tool-returned URLs and server-recorded retrieval timestamps. The composition stage treats that content as untrusted data, uses only collected source IDs, and provides direct researched provider links. There is no hotel database or booking/availability service. Missing quotes remain unknown; unknown currency conversions cannot be assumed. Every cost is a subtotal for the whole group for one activity, leg or night in the requested currency.
+
+`lib/planner/validation.ts` verifies response shape, day count, arrival/departure connections, overnight continuity, duplicate activities, chronological periods, time budgets, flight windows, sourced journey estimates with buffers, source references and cost arithmetic. Major costs remain explicitly unknown; the server does not call a partial subtotal a complete budget. Conflicts are shown before returning a finished itinerary.
+
+### Hosting and request recovery
+
+`POST /api/itinerary` streams newline-delimited JSON containing real processing stages, then a validated result or an error. A client-generated UUID is saved **before** the request. Concurrent calls with the same ID join the existing request or return its saved result. Network interruption retains the ID for reconnection; a terminal failure permits a fresh retry. Preferences cannot be changed under an existing ID.
+
+The MVP targets a persistent Node process with filesystem access. Request records, including generated itineraries, are private files in the OS temporary directory by default. Records expire after 24 hours and are cleaned on subsequent requests; this is not permanent trip storage. Set `ITINERARY_CACHE_DIR` to a shared persistent filesystem for multiple Node instances that need to deduplicate across processes. Ephemeral, isolated serverless filesystems do **not** provide cross-instance deduplication; use a shared durable job store before deploying that topology. Allow at least 240 seconds for generation and disable response buffering. The provider deadline is 200 seconds; stale requests can be retried after 220 seconds.
+
+A basic per-process hourly limit is included. A public deployment should enforce a shared gateway rate limit and provider spending limits. No API key is exposed to browser code. Live preferences are sent to the AI provider, as explained before generation; avoid entering personal contact or medical details.
+
+### Planner code and checks
+
+- `components/planner/`: form, lifecycle, results and export preview.
+- `lib/planner/`: types, preference validation, sample data, provider calls, itinerary validation and canvas layout.
+- `app/api/itinerary/route.ts`: server endpoint and request recovery.
+- `app/plan/planner.css`: scoped extension of the existing design tokens.
+
+```sh
+npm test
+npm run lint
+npm run typecheck
+npm run build
+# With Playwright and its Chromium installed:
+TEST_BASE_URL=http://127.0.0.1:3001 node tests/planner.browser.cjs
+```
+
+The browser script accepts `PLAYWRIGHT_MODULE`, `TEST_BROWSER_PATH`, and `TEST_ARTIFACTS` for externally installed browser tooling. Browser test dependencies do not ship in the application.
 
 ## Creative direction: five chapters
 
@@ -82,16 +139,16 @@ Replace the temporary text inside `components/Brand.tsx` with the final Journey 
 
 `app/layout.tsx` contains title, description, Open Graph/Twitter metadata and a **placeholder canonical origin** of `https://hellosrilanka.com`. Replace it with the final production domain before a public launch.
 
-All planning CTAs link to `/plan`. That route is intentionally absent. There is no authentication, persistence, analytics, AI integration, itinerary generation, dashboard, or backend API. The interest selector is a visual demonstration only. Travel Guides, Privacy, Terms and social channels are clearly inactive placeholders pending their real destinations.
+All planning CTAs link to the working `/plan` flow. The landing-page interest selector remains an independent visual demonstration. Travel Guides, Privacy, Terms and social channels are clearly inactive placeholders pending their real destinations.
 
 ## Performance and validation
 
-- Static HTML export; server-rendered essential copy.
+- Prerendered landing/planning pages plus a dynamic server endpoint; server-rendered essential copy.
 - Responsive, locally optimized WebP assets; no third-party image requests.
 - Two locally hosted fonts; no Google Fonts network dependency.
 - Width/height or aspect-ratio reservations prevent image-driven layout shifts.
 - Dynamic GSAP/Lenis loading, no WebGL or continuous carousel playback.
 - Keyboard focus styles, skip link, labelled navigation, descriptive alt text, reduced-motion fallbacks, and short-viewport mobile-menu scrolling.
-- No planner is implemented. Its intentional `/plan` 404 is excluded from landing-page success checks.
+- Complete planner checks cover form validation, persistence, generation recovery, responsive results and PNG exports.
 
 See `VALIDATION.md` for final checks and their limits. Real-user Core Web Vitals require field measurements after public deployment; local checks are lab evidence only.

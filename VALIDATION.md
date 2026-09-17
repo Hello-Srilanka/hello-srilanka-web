@@ -1,3 +1,35 @@
+# Planner MVP validation — 17 September 2026
+
+Validated the production Next.js Node server at `http://127.0.0.1:3001`. **No maps are implemented**, following the updated MVP scope. The earlier landing-page reports below are historical; their static-export and absent-planner statements no longer describe the application.
+
+## Passed
+
+- `npm run build`: Next.js 16.3.5 production build succeeds; `/plan` is prerendered and `/api/itinerary` is a dynamic server endpoint.
+- `npm run lint`: no errors or warnings. Strict TypeScript also passes during the production build.
+- `npm test`: nine test groups covering preferences, all 1–21 sample durations, dates, conditional ages, per-person budget arithmetic, overnight/transfer continuity, duplicate activities, invalid sources, unsupported journey estimates, overloaded days, flight windows, invalid model output, explicit conflicts and mocked provider success/failure paths.
+- Chromium 1440 × 1000 and 390 × 844: landing CTA → welcome → validated form → review/edit → server-generated sample → expandable itinerary → export preview → actual PNG downloads.
+- Refresh preserves form answers, children’s ages and completed itineraries. New-trip flow works and keeps access to the last saved itinerary.
+- A disconnected generation stream retains its request ID; retry reconnects using that ID. Concurrent POSTs with one ID return the same generated result and timestamp. Invalid API preferences return 400.
+- Day cards open and close correctly; itinerary has no editing or map controls.
+- PNG downloads are 1440 × 1920. Whole-trip and selected-day exports work; the estimated-cost toggle regenerates the images.
+- A 21-day overview splits into multiple full-resolution pages. Instrumented canvas checks confirm every day reaches export and every text draw fits within the available width and image bounds.
+- 320px narrow viewport: no horizontal result overflow. Blocked fonts and photos retain working, paginated text-based export. System font fallback works.
+- Blocked localStorage displays the device-storage warning. Keyboard Enter/Space operate welcome and checkbox controls.
+- No uncaught page errors during the full browser flow. Screenshots of desktop/mobile welcome, interests, review, results and export were reviewed; a downloaded selected-day image was visually inspected for readability and clipping.
+- `git diff --check`: no whitespace errors.
+
+Repeat browser checks with `tests/planner.browser.cjs`; see README for external Playwright paths. Review artifacts are saved under `/private/tmp/hellosrilanka-planner-review` in this workspace session.
+
+## Limits and remaining setup
+
+- No real provider key was available. OpenAI Responses API request structure, search/source handling, structured output and failure paths were tested with mocked responses; **a billable live research run has not been verified**. Configure the server-only `OPENAI_API_KEY` and a supported `OPENAI_MODEL` to test live itinerary quality.
+- Sample routes are explicitly illustrative. They do not establish real-world route feasibility, accessibility, prices, availability or booking status.
+- There is no map, booking engine or live hotel inventory integration. Live generation researches provider websites and returns links; date-specific quotes remain unknown when unavailable.
+- Browser checks use Chromium viewport emulation, not physical iOS Safari. Mobile save-to-Photos behavior may vary by browser; an open-full-size-image fallback is available.
+- The new server endpoint requires Node hosting with appropriate response timeouts and filesystem access. Multi-instance or ephemeral serverless deployment needs shared durable request storage; the default OS temporary directory is for a single Node host. See README for retention and rate-limit details.
+
+---
+
 # Landing-page validation
 
 ## Hero film — 17 September 2026

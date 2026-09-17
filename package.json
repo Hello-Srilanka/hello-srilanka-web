@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "start": "next start",
+    "test": "node --test tests/planner.test.cjs",
     "build": "next build --webpack",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
