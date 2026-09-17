@@ -19,7 +19,7 @@ npm run typecheck
 npm run build
 ```
 
-The production build exports static HTML, CSS, JavaScript, and responsive photography into `out/`. Deploy that folder to a static host. To inspect it locally:
+The production build exports static HTML, CSS, JavaScript, responsive photography and the hero films into `out/`. Deploy that folder to a static host with video MIME types and HTTP byte-range support. To inspect HTML and photography locally (use `npm run dev` or a byte-range-capable server for video seeking):
 
 ```sh
 python3 -m http.server 4173 --directory out
@@ -31,7 +31,7 @@ Open http://localhost:4173. The build uses Next.js's supported Webpack compiler 
 
 The visual rhythm alternates immersive photography with generous, quiet space. Anton supplies expressive condensed headlines; locally hosted DM Sans supplies readable body copy. Warm Sand, Deep Jungle, Ink, and restrained Cinnamon/Saffron accents form the palette in `app/globals.css`.
 
-1. **Arrive** — full-viewport train journey, clear navigation, oversized destination-first typography, and two obvious actions.
+1. **Arrive** — full-viewport Sri Lanka film, clear navigation, oversized destination-first typography, and two obvious actions.
 2. **Experience** — an editorial introduction, one five-scene cinematic sequence, asymmetric coastal imagery, and nine expandable experience categories.
 3. **Find yours** — an uncluttered question followed by a tactile travel profile. Interest selections change its image and caption; selections live only in component memory.
 4. **Understand** — four contrasting example journeys, a connected four-stage route, and a travel companion expressed as a travel journal.
@@ -55,22 +55,13 @@ The visual rhythm alternates immersive photography with generous, quiet space. A
 
 **Reduced motion:** both GSAP moments are disabled, every story image becomes part of the natural document, Motion transitions resolve immediately, the hero remains a still image, and all selectors retain their functionality. Without JavaScript, essential destination/product text, all five story photographs, native anchor links, and `/plan` CTAs remain available.
 
-## Replace the hero film
+## Hero film
 
-`lib/media.ts` is the hero media configuration. The film paths intentionally default to `null`, so no missing video file is requested. The supplied local photograph is the ready-to-use fallback.
+The opening now plays a 24.5-second silent film edited from the supplied Sri Lanka footage: mountains, train, coast, food, heritage, a procession, friends and a quiet return to the mountains. The last mountain frame continues into the opening shot for a visually continuous loop. The headline remains HTML above the footage.
 
-Place final films in `public/media/` and set:
+`lib/media.ts` maps the 1080p desktop and independently framed 720 × 1280 mobile films, each in WebM and MP4. Final assets are in `public/media/`; the opening-frame posters include a portrait version and responsive landscape WebPs. See [edit notes and re-render instructions](public/media/README.md), [the edit decisions](scripts/hero-edit.json) and [the renderer](scripts/render-hero.py).
 
-```ts
-heroVideo: {
-  desktop: '/media/sri-lanka-desktop.mp4',
-  mobile: '/media/sri-lanka-mobile.mp4',
-}
-```
-
-Recommended deliverables: muted H.264 MP4, 20–30 second seamless loop, desktop 1080p at roughly 3–5 MB and a separate portrait/mobile cut around 1–2 MB. Keep people and experiences at the heart of the edit. These are production targets, not supplied footage.
-
-`HeroMedia` implements autoplay, muted, loop, playsInline, object-cover, preload="none", poster/error/play-rejection fallback, a pause/play control, offscreen pausing, reduced-motion and data-saver checks. Mobile never downloads the desktop film when a mobile source is absent. Set either source to `null` to use photography on that device class. Final-film playback must be checked again after the real files are supplied.
+`HeroMedia` selects a device version before mounting video, supports muted inline autoplay and looping, and offers a pause/play control. It pauses offscreen or when the tab is hidden, preserves manual pause, uses MP4 if WebM fails, and falls back to the poster if neither format plays. Reduced-motion, data-saver and 2G connections receive only the still image. Viewport changes select the appropriate film. Browsers that block autoplay retain a manual play button.
 
 ## Replace photography
 

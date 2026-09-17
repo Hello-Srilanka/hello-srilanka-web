@@ -1,6 +1,12 @@
-/** Replace local photography here. Sources and credits live in public/images/CREDITS.md. */
+/** Hero edit and source notes: public/media/README.md. */
 export const media = {
-  hero: { src: '/images/hero-train.webp', alt: 'Passengers travelling through Sri Lanka’s green tea country on a winding train' },
-  // Add the final films to public/media, then set these paths. Null avoids broken network requests.
-  heroVideo: { desktop: null as string | null, mobile: null as string | null },
+  hero: {
+    src: '/images/hero-film.webp',
+    mobile: '/media/hero-poster-mobile.webp',
+    alt: 'Layers of green Sri Lankan mountain ridges beneath a soft, cloudy sky',
+  },
+  heroVideo: {
+    desktop: { mp4: '/media/sri-lanka-desktop.mp4', webm: '/media/sri-lanka-desktop.webm' },
+    mobile: { mp4: '/media/sri-lanka-mobile.mp4', webm: '/media/sri-lanka-mobile.webm' },
+  },
 };

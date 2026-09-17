@@ -1,0 +1,15 @@
+{
+  "fps": 30,
+  "closing_dissolve_frames": 15,
+  "shots": [
+    { "scene": "Wonder — mountain ridge", "file": "13914560_3840_2160_60fps.mp4", "start": 3.6, "frames": 90, "speed": 1, "crop": "0.52", "grade": "eq=contrast=1.035:brightness=0.008:saturation=1.08" },
+    { "scene": "Journey — train crossing the viaduct", "file": "13914759_3840_2160_60fps.mp4", "start": 3.8, "frames": 120, "speed": 0.8, "crop": "0.12+0.62*min(t/4,1)", "grade": "eq=contrast=1.025:brightness=0.002:saturation=1.04" },
+    { "scene": "Freedom — surf meeting the shore", "file": "13860756_1920_1080_30fps.mp4", "start": 11.3, "frames": 75, "speed": 1, "crop": "0.60", "grade": "eq=contrast=1.015:saturation=1.02" },
+    { "scene": "Taste — food close-up", "file": "11695-231758964_small.mp4", "start": 5.1, "frames": 39, "speed": 1, "crop": "0.44", "grade": "eq=contrast=1.015:saturation=0.94" },
+    { "scene": "Culture — Sigiriya and its visitors", "file": "15341268_1920_1080_60fps.mp4", "start": 3.4, "frames": 60, "speed": 0.8, "crop": "0.57", "grade": "eq=contrast=1.015:brightness=-0.005:saturation=0.93" },
+    { "scene": "Culture — hilltop stupa", "file": "13936563_1920_1080_60fps.mp4", "start": 10.5, "frames": 36, "speed": 1, "crop": "0.50", "grade": "eq=contrast=1.03:brightness=0.004:saturation=1.03" },
+    { "scene": "Local life — procession and drummers", "file": "13648811_1920_1080_24fps.mp4", "start": 3.3, "frames": 111, "speed": 1, "crop": "0.61", "grade": "eq=contrast=1.015:brightness=0.005:saturation=0.92" },
+    { "scene": "Alive — friends dancing", "file": "4781570-hd_1280_720_25fps.mp4", "start": 11.1, "frames": 120, "speed": 1, "crop": "0.64", "grade": "eq=contrast=1.02:brightness=0.01:saturation=0.95" },
+    { "scene": "Calm — return to the mountain ridge", "file": "13914560_3840_2160_60fps.mp4", "start": 0.3, "frames": 99, "speed": 1, "crop": "0.52", "grade": "eq=contrast=1.035:brightness=0.008:saturation=1.08" }
+  ]
+}
