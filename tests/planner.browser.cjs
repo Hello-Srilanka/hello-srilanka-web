@@ -22,13 +22,14 @@ const output = process.env.TEST_ARTIFACTS || '/private/tmp/hellosrilanka-planner
     assert.ok(await page.getByRole('alert').count(), 'An interest is required before moving on');
     await page.getByRole('checkbox', { name: 'Nature', exact: true }).check();
     await page.getByRole('checkbox', { name: 'Food', exact: true }).check();
-    assert.match(await page.locator('.postcard-copy h2').innerText(), /Green escapes.*Local flavours/s);
+    assert.match(await page.locator('.postcard-copy h2').innerText(), /Green escapes.*Local flavours/is);
     await page.getByRole('button', { name: 'More ways to explore', exact: true }).click();
     assert.equal(await page.locator('.moment-card').count(), 10);
     await page.getByRole('checkbox', { name: 'Wellness', exact: true }).check();
     await page.getByRole('button', { name: 'A little less', exact: true }).click();
     assert.ok(await page.getByRole('checkbox', { name: 'Wellness', exact: true }).isVisible(), 'Extra selected moments remain visible');
-    await page.getByRole('checkbox', { name: 'Wellness', exact: true }).uncheck();
+    await page.getByRole('checkbox', { name: 'Wellness', exact: true }).click();
+    assert.equal(await page.getByRole('checkbox', { name: 'Wellness', exact: true }).count(), 0);
     await page.screenshot({ path: output + '/postcard-desktop.png', fullPage: true });
     await page.getByRole('button', { name: 'Find my rhythm', exact: true }).click();
     await page.getByRole('radio', { name: 'Relaxed', exact: true }).check();

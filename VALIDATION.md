@@ -1,3 +1,17 @@
+# Discovery flow validation — 17 September 2026
+
+Validated the redesigned planner on the production server at `http://127.0.0.1:3002/plan`. The flow now opens with photo choices, updates a personal postcard, previews each pace, and separates time, budget and comforts before a photographic review. Maps remain outside the MVP.
+
+- Production build, lint, TypeScript and all ten unit-test groups pass.
+- Full Chromium browser suite passes: live postcard updates, extra interests, rhythm previews, chapter validation, legacy-draft migration, direct review edits and refresh recovery.
+- End-to-end sample generation, saved results, day expansion, PNG downloads, retry/reconnection and concurrent-request deduplication pass.
+- Verified desktop and mobile layouts, a 320px viewport, 21-day export pagination, blocked fonts/images, unavailable device storage and keyboard controls. Deselecting a hidden extra interest returns focus to the disclosure button.
+- Visually reviewed desktop and mobile discovery screens and the mobile journey brief. No uncaught browser errors occurred.
+
+Browser artifacts: `/private/tmp/hellosrilanka-discovery-review`. The provider and device-testing limitations in the original MVP report below still apply; no billable live research run was performed.
+
+---
+
 # Planner MVP validation — 17 September 2026
 
 Validated the production Next.js Node server at `http://127.0.0.1:3001`. **No maps are implemented**, following the updated MVP scope. The earlier landing-page reports below are historical; their static-export and absent-planner statements no longer describe the application.

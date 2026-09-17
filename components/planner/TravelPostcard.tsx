@@ -14,7 +14,7 @@ export default function TravelPostcard({ p, compact = false }: { p: Preferences;
       <div className="postcard-inset" key={(photos[1] || moments[1]).image}><div><Image src={`/images/${(photos[1] || moments[1]).image}.webp`} alt="" fill sizes="180px" /></div><span>Your next chapter <ArrowUpRight size={13} /></span></div>
       <div className="postcard-stamp"><span>HELLO</span><Sparkles size={24} strokeWidth={1} /><span>SRI LANKA</span></div>
     </div>
-    <div className="postcard-copy" aria-live="polite" aria-atomic="true"><p className="postcard-handwritten">A little more you, with every choice.</p><h2>{story.title}</h2><p>{story.description}</p><div className="postcard-chips">{story.duration && <span>{story.duration}</span>}{selected.length > 0 && <span>{selected.length} things you love</span>}{compact && <span>{travellers(p)}</span>}</div></div>
-    <div className="postcard-bottom"><span>YOUR SRI LANKA. YOUR WAY.</span><span>Inspiration, shaped by your choices.<br />Your researched route comes next.</span></div>
+    <div className="postcard-copy" aria-live="polite" aria-atomic="true"><p className="postcard-handwritten">A little more you, with every choice.</p><h2>{story.title}</h2><p>{story.description}</p><div className="postcard-chips">{story.duration && <span>{story.duration}</span>}{selected.length > 0 && <span>{selected.length} {selected.length === 1 ? 'thing' : 'things'} you love</span>}{compact && <span>{travellers(p)}</span>}</div></div>
+    <div className="postcard-bottom"><span>YOUR SRI LANKA. YOUR WAY.</span><span>Inspiration, shaped by your choices.<br />Your day-by-day plan comes next.</span></div>
   </aside>;
 }

@@ -32,10 +32,12 @@ The build uses Next.js’s Webpack compiler. Serve media with correct MIME types
 
 Every existing planning CTA opens `/plan`:
 
-**Welcome → trip basics → interests → travel style → review → generation → read-only itinerary → PNG export.**
+**Your moments → your rhythm → your time → your budget → your comforts → your journey → generation → read-only itinerary → PNG export.**
 
 - Dates or 1–21 relative days; arrival/departure locations and optional local flight times; adults, children and conditional ages.
-- Ten photographic interests, three paces, budget currency and per-person/group basis, international-flight inclusion, transport/stay preferences, must-visits and accessibility notes.
+- Discovery starts with six photographic experience cards, with four more available to explore. Selections update a travel postcard and preference summary. Three pace choices show illustrative morning/midday/evening examples.
+- Dates and traveller counters come after discovery. Flight details are expandable; children’s ages appear only when relevant. Budget and comforts have separate chapters, including photographic stay preferences, transport choices and optional personal notes.
+- Review opens with a personalised photo brief. Edit links return directly to review after validating the edited chapter. Existing device-local drafts migrate to the new chapter order without discarding their answers or completed itinerary.
 - Accessible labelled controls, visible progress, review edit links, refresh recovery and local persistence. No account creation.
 - Full-width expandable itinerary cards with flexible periods, connected transfers, overnight suggestions, provider/source links, qualified costs, assumptions and caveats. **No maps**, per the MVP scope. No itinerary editing, chat, sharing or booking management.
 - Whole-trip and selected-day PNG preview, optional costs, 1440 × 1920 output, pagination and individual downloads. The dedicated text layout avoids cross-origin image dependencies; fonts have a bounded system-font fallback.
@@ -68,7 +70,8 @@ A basic per-process hourly limit is included. A public deployment should enforce
 
 ### Planner code and checks
 
-- `components/planner/`: form, lifecycle, results and export preview.
+- `components/planner/`: visual discovery form, responsive travel postcard, lifecycle, results and export preview.
+- `lib/planner/discovery.ts`: chapter definitions, preference-to-story copy, chapter validation and legacy draft migration.
 - `lib/planner/`: types, preference validation, sample data, provider calls, itinerary validation and canvas layout.
 - `app/api/itinerary/route.ts`: server endpoint and request recovery.
 - `app/plan/planner.css`: scoped extension of the existing design tokens.
