@@ -36,6 +36,12 @@ test('normalizes fixed and flexible date inputs before generation', () => {
   assert.equal(flexible.arrivalDate, '');
   assert.equal(flexible.departureDate, '');
 });
+test('ignores the retired international-flights budget choice in saved preferences', () => {
+  const restored = readPreferences({ ...p, flightsIncluded: true });
+  assert.equal(Object.hasOwn(restored, 'flightsIncluded'), false);
+  assert.equal(Object.hasOwn(itineraryRequestPreferences(restored), 'flightsIncluded'), false);
+  assert.equal(finish(sampleDraft(restored), restored).unknownCosts.includes('International flights'), false);
+});
 test('sample supports every duration with continuous overnights and no fabricated prices', () => {
   for (let duration = 1; duration <= 21; duration++) {
     const prefs = { ...p, duration }, trip = finish(sampleDraft(prefs), prefs);
@@ -108,6 +114,7 @@ test('provider uses web search, retains source timestamps and requests strict st
     assert.equal(calls[0].reasoning.effort, 'low');
     assert.match(calls[0].input, /"datePlan":\{"mode":"flexible","durationDays":7/);
     assert.doesNotMatch(calls[0].input, /"arrivalDate"|"departureDate"/);
+    assert.match(calls[0].input, /budget covers Sri Lanka trip costs only/);
     assert.equal(evidence.sources.length, 1);
     assert.match(evidence.text, /\[s1\]/);
     assert.ok(Date.parse(evidence.sources[0].retrievedAt));
@@ -122,6 +129,7 @@ test('provider uses web search, retains source timestamps and requests strict st
     assert.equal(JSON.parse(calls[1].input).preferences.datePlan.durationDays, 7);
     assert.equal(Object.hasOwn(JSON.parse(calls[1].input).preferences, 'duration'), false);
     assert.match(calls[1].instructions, /untrusted data/);
+    assert.match(calls[1].instructions, /budget excludes international flights/);
     await compose(p, evidence, AbortSignal.timeout(1000), { draft: sampleDraft(p), validationError: 'Day 2 does not connect.' });
     assert.equal(JSON.parse(calls[2].input).repair.validationError, 'Day 2 does not connect.');
     assert.match(calls[2].instructions, /Correct the previous draft/);
@@ -141,6 +149,17 @@ test('provider rejects failed searches, refusals, incomplete JSON and provider e
     await assert.rejects(() => research(p, AbortSignal.timeout(1000)), /busy/);
     global.fetch = async () => { throw new DOMException('Timed out', 'TimeoutError'); };
     await assert.rejects(() => research(p, AbortSignal.timeout(1000)), /Timed out/);
+  } finally { global.fetch = original; }
+});
+test('reviewed knowledge bypasses live search only when coverage is complete', async () => {
+  const { research } = require('../lib/planner/provider.ts');
+  const original = global.fetch;
+  global.fetch = async () => { throw new Error('An unnecessary web request was made.'); };
+  try {
+    const knowledge = { complete: true, text: 'A sourced attraction claim [k1]', sources: [{ ...source, id: 'k1' }] };
+    const evidence = await research(p, AbortSignal.timeout(1000), undefined, knowledge);
+    assert.equal(evidence.sources[0].id, 'k1');
+    assert.match(evidence.text, /single-base route/);
   } finally { global.fetch = original; }
 });
 test('discovery validates only the current chapter and migrates previous drafts', () => {

@@ -111,7 +111,7 @@ export default function Planner() {
     } finally { clearTimeout(timeout); activeController.current = null; busy.current = false; }
   }
   function newTrip() { try { sessionStorage.removeItem(plannerSessionKey); } catch { /* Storage may be unavailable. */ } setP({ ...defaults }); setStep(0); setFurthest(0); setEditing(false); setScreen('form'); setErrors({}); setFailure(''); setRequestId(null); focusHeading(); }
-  return <div className="planner-app"><header className="planner-header"><Link className="wordmark" href="/" aria-label="HelloSriLanka home">hello<span>srilanka</span><span className="brand-period">.</span></Link><span className="planner-brand-promise">YOUR SRI LANKA. YOUR WAY.</span><Link href="/" className="planner-home"><ArrowLeft size={15} /><span>Back to the island</span></Link></header>
+  return <div className="planner-app"><header className="planner-header"><Link className="wordmark" href="/" aria-label="HelloSriLanka home">hello<span>srilanka</span><span className="brand-period">.</span></Link><span className="planner-brand-promise">YOUR SRI LANKA. YOUR WAY.</span><Link href="/account" className="planner-home">Account</Link><Link href="/" className="planner-home"><ArrowLeft size={15} /><span>Back to the island</span></Link></header>
     <main id="main">
       {storageNote && <div className="storage-notice" role="status">{storageNote}</div>}
       {mode === 'sample' && screen !== 'result' && <div className="sample-banner"><span>Sample mode</span> Explore the planner with an illustrative itinerary. Live research is not connected.</div>}

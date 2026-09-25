@@ -47,7 +47,7 @@ export function finalize(raw: unknown, p: Preferences, sources: Source[], id: st
   const sourceIds = new Set(sources.map(s => s.id));
   const checkRefs = (ids: string[]) => { if (ids.some(id => !sourceIds.has(id))) throw new Error('The itinerary cited an unverified source. Please retry.'); };
   let total = 0, priced = 0;
-  const unknown = new Set<string>(['Meals and incidentals', 'Travel insurance and entry requirements', ...(p.flightsIncluded ? ['International flights'] : [])]);
+  const unknown = new Set<string>(['Meals and incidentals', 'Travel insurance and entry requirements']);
   const addCost = (c: { amount: number | null; basis: string; sourceIds: string[] }, label: string) => {
     checkRefs(c.sourceIds);
     if (c.amount === null) { unknown.add(label); return; }
@@ -92,7 +92,8 @@ export function finalize(raw: unknown, p: Preferences, sources: Source[], id: st
     const timeBudget = dayTimeBudgets(p)[index];
     const cap = p.pace === 'Relaxed' ? 480 : p.pace === 'Balanced' ? 600 : 720;
     const periodBudgets = [timeBudget.morningMinutes, timeBudget.afternoonMinutes, timeBudget.eveningMinutes];
-    if (minutes > Math.min(cap, timeBudget.totalMinutes) || periodMinutes.some((m, slot) => m > periodBudgets[slot])) throw new Error(`Day ${d.number} is too full for your pace or flight times. Adjust your timing or retry.`);
+    if (minutes > Math.min(cap, timeBudget.totalMinutes)) throw new Error(`Day ${d.number} is too full for your pace or flight times. Adjust your timing or retry.`);
+    if (periodMinutes.some((m, slot) => m > periodBudgets[slot])) throw new Error(`Day ${d.number} has activities outside your available morning, afternoon or evening. Please review flight times or retry.`);
     if (d.stay) {
       if (d.stay.sourceId !== null) checkRefs([d.stay.sourceId]);
       if (mode === 'live' && !d.stay.sourceId) throw new Error('An accommodation suggestion has no researched provider link. Please retry.');

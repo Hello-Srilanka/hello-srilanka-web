@@ -6,6 +6,7 @@ import { readPreferences, validatePreferences, type Itinerary } from '@/lib/plan
 import { finalize } from '@/lib/planner/validation';
 import { sampleDraft } from '@/lib/planner/sample';
 import { research, compose, type AiCallMetrics } from '@/lib/planner/provider';
+import { loadKnowledge } from '@/lib/knowledge/retrieval';
 
 export const runtime = 'nodejs';
 export const maxDuration = 240;
@@ -99,8 +100,10 @@ export async function POST(request: Request) {
           let raw: unknown, sources: Itinerary['sources'] = [];
           if (mode === 'sample') { await stage('Preparing your sample itinerary'); raw = sampleDraft(p); }
           else {
-            await stage('Researching destinations, stays and transport');
-            const evidence = await research(p, signal, telemetry); sources = evidence.sources;
+            await stage('Checking reviewed Sri Lanka knowledge');
+            const knowledge = await loadKnowledge(p);
+            await stage(knowledge.complete ? 'Using reviewed destinations and connections' : 'Researching missing destinations, stays and transport');
+            const evidence = await research(p, signal, telemetry, knowledge); sources = evidence.sources;
             await stage('Building your day-by-day journey');
             raw = await compose(p, evidence, signal, undefined, telemetry);
             try { finalize(raw, p, sources, id, mode); }

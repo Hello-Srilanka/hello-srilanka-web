@@ -1,0 +1,21 @@
+# Supabase account and knowledge setup
+
+This project uses Supabase Auth for email/password accounts and Postgres for reviewed travel facts. The planner remains available when Supabase is unconfigured; account forms are disabled and itinerary generation uses live research.
+
+1. Create a Supabase project. In **Project Settings → API Keys**, copy the project URL and **publishable** key into `.env.local` as `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Restart `npm run dev`. Never put a secret or service-role key in a `NEXT_PUBLIC_` variable.
+2. Apply [`supabase/migrations/20260925000000_knowledge.sql`](supabase/migrations/20260925000000_knowledge.sql) in the Supabase SQL Editor, or use `supabase db push` if this repository is linked to your project. The migration enables RLS and grants the public only access to currently approved facts.
+3. Under **Authentication → URL Configuration**, set your site URL to `http://localhost:3000` for local development and allow `http://localhost:3000/auth/callback` as a redirect URL. Add the production origin and its `/auth/callback` URL before deploying. Keep email confirmation enabled.
+4. Under **Authentication → Email Templates → Confirm signup**, use a link to your app's confirmation endpoint so its server can store the session cookie. For example: `<a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email">Confirm your email</a>`. The app also accepts a PKCE `code` callback. Confirm the template's URL points to your own configured site.
+5. Sign up at `/signup` and confirm the email. Regular sign-ups have no admin privileges. In the SQL Editor, grant your account admin access by replacing the address below:
+
+   ```sql
+   insert into public.admin_users (user_id)
+   select id from auth.users where lower(email) = lower('your-email@example.com')
+   on conflict (user_id) do nothing;
+   ```
+
+6. Sign in at `/login`, open `/account`, then `/admin`. Add one sourced claim per record as a draft, open the source and check it, then approve it. Editing an approved fact returns it to draft. Previous versions are retained in `knowledge_revisions` for audit. Approved facts expire after 30 days for stays, 60 for connections, 90 for activities and seasonal facts, or 180 for destination facts. Review an expired record again to renew it. Archiving removes it from itinerary retrieval.
+
+The itinerary endpoint retrieves approved, unexpired facts for the traveller's dates and interests. When a single-base route has enough supported activities, a stay, seasonal context, and both airport connections, composition uses those facts without a new web search. Otherwise live research fills gaps. Empty knowledge collections continue to use the existing live research flow. Provider prices and availability still need date-specific confirmation.
+
+The admin page and its server actions check the authenticated user against `admin_users`; database RLS independently enforces the same access. No account or admin access can be obtained solely by setting client-side user metadata.

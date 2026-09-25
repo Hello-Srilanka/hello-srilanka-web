@@ -19,14 +19,14 @@ export type Preferences = {
   arrival: string; departure: string; arrivalTime: string; departureTime: string;
   adults: number; children: number; ages: string[]; interests: string[];
   pace: 'Relaxed' | 'Balanced' | 'Packed'; budget: string; currency: string;
-  budgetBasis: 'group' | 'person'; flightsIncluded: boolean; transport: string; accommodation: string;
+  budgetBasis: 'group' | 'person'; transport: string; accommodation: string;
   mustVisit: string; accessibility: string;
 };
 export const defaults: Preferences = {
   undecided: false, arrivalDate: '', departureDate: '', duration: 7, month: 'Any month',
   arrival: 'Bandaranaike International Airport (CMB)', departure: 'Bandaranaike International Airport (CMB)',
   arrivalTime: '', departureTime: '', adults: 2, children: 0, ages: [], interests: [],
-  pace: 'Balanced', budget: '', currency: 'USD', budgetBasis: 'group', flightsIncluded: false,
+  pace: 'Balanced', budget: '', currency: 'USD', budgetBasis: 'group',
   transport: 'Help me decide', accommodation: 'Help me decide', mustVisit: '', accessibility: '',
 };
 export function dayCount(p: Preferences) {
