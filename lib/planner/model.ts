@@ -32,6 +32,41 @@ export const defaults: Preferences = {
 export function dayCount(p: Preferences) {
   return p.undecided ? p.duration : Math.round((Date.parse(p.departureDate) - Date.parse(p.arrivalDate)) / 86400000) + 1;
 }
+export function dayTimeBudgets(p: Preferences) {
+  const count = dayCount(p);
+  const windows = [[0, 12 * 60], [12 * 60, 18 * 60], [18 * 60, 24 * 60]];
+  return Array.from({ length: count }, (_, index) => {
+    const earlyDeparture = index === count - 1 && Boolean(p.departureTime && p.departureTime < '11:00');
+    const arrival = index === 0 && p.arrivalTime
+      ? Number(p.arrivalTime.slice(0, 2)) * 60 + Number(p.arrivalTime.slice(3)) + 90
+      : earlyDeparture ? 0 : 8 * 60;
+    const departure = index === count - 1 && p.departureTime
+      ? Number(p.departureTime.slice(0, 2)) * 60 + Number(p.departureTime.slice(3)) - 180
+      : 22 * 60;
+    const periods = windows.map(([start, end]) => Math.max(0, Math.min(end, departure) - Math.max(start, arrival)));
+    return {
+      day: index + 1,
+      morningMinutes: periods[0],
+      afternoonMinutes: periods[1],
+      eveningMinutes: periods[2],
+      totalMinutes: Math.max(0, departure - arrival),
+    };
+  });
+}
+export function normalizePreferences(p: Preferences): Preferences {
+  if (p.undecided) return { ...p, arrivalDate: '', departureDate: '' };
+  const calculatedDuration = dayCount(p);
+  return { ...p, duration: Number.isInteger(calculatedDuration) ? calculatedDuration : p.duration, month: 'Any month' };
+}
+export function itineraryRequestPreferences(p: Preferences) {
+  const { undecided, arrivalDate, departureDate, duration, month, ...shared } = p;
+  return {
+    ...shared,
+    datePlan: undecided
+      ? { mode: 'flexible' as const, durationDays: duration, preferredMonth: month }
+      : { mode: 'fixed' as const, arrivalDate, departureDate, dayCount: dayCount(p) },
+  };
+}
 export function dayDate(p: Preferences, index: number) {
   if (p.undecided) return null;
   return new Date(Date.parse(p.arrivalDate) + index * 86400000).toISOString().slice(0, 10);
@@ -88,7 +123,7 @@ export function readPreferences(value: unknown): Preferences {
       if (!Array.isArray(p[key]) || (p[key] as unknown[]).some(v => typeof v !== 'string') || (p[key] as unknown[]).length > 20) throw new Error('Invalid preference format.');
     } else if (typeof p[key] !== typeof base) throw new Error('Invalid preference format.');
   }
-  return Object.fromEntries(Object.keys(defaults).map(k => [k, p[k]])) as Preferences;
+  return normalizePreferences(Object.fromEntries(Object.keys(defaults).map(k => [k, p[k]])) as Preferences);
 }
 export type Source = { id: string; title: string; url: string; retrievedAt: string | null };
 export type Cost = { amount: number | null; basis: string; sourceIds: string[] };

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { readPreferences, validatePreferences, type Itinerary } from '@/lib/planner/model';
 import { finalize } from '@/lib/planner/validation';
 import { sampleDraft } from '@/lib/planner/sample';
-import { research, compose } from '@/lib/planner/provider';
+import { research, compose, type AiCallMetrics } from '@/lib/planner/provider';
 
 export const runtime = 'nodejs';
 export const maxDuration = 240;
@@ -82,23 +82,44 @@ export async function POST(request: Request) {
       const stage = async (value: string) => { job.stage = value; await save(id, job); send({ stage: value }); };
       send({ stage: job.stage, mode });
       if (owner && !job.error) {
+        const generationStarted = Date.now();
+        const aiMetrics: AiCallMetrics[] = [];
+        const telemetry = { requestId: id, record: (value: AiCallMetrics) => aiMetrics.push(value) };
+        const logTotal = () => {
+          if (!aiMetrics.length) return;
+          const total = (key: 'inputTokens' | 'cachedInputTokens' | 'cacheWriteTokens' | 'outputTokens' | 'webSearchCalls') => aiMetrics.reduce((sum, value) => sum + value[key], 0);
+          const knownCost = aiMetrics.every(value => value.estimatedCostUsd !== null);
+          const cost = aiMetrics.reduce((sum, value) => sum + (value.estimatedCostUsd || 0), 0);
+          const models = [...new Set(aiMetrics.map(value => value.model))].join('+');
+          const durationMs = Date.now() - generationStarted;
+          console.info(`[AI usage] request_id=${id} stage=total model=${models} input_tokens=${total('inputTokens')} cached_input_tokens=${total('cachedInputTokens')} cache_write_tokens=${total('cacheWriteTokens')} output_tokens=${total('outputTokens')} web_search_calls=${total('webSearchCalls')} estimated_cost_usd=${knownCost ? cost.toFixed(6) : 'unavailable'} time_ms=${durationMs} time_seconds=${(durationMs / 1000).toFixed(2)}`);
+        };
         try {
           const signal = AbortSignal.timeout(200000);
           let raw: unknown, sources: Itinerary['sources'] = [];
           if (mode === 'sample') { await stage('Preparing your sample itinerary'); raw = sampleDraft(p); }
           else {
             await stage('Researching destinations, stays and transport');
-            const evidence = await research(p, signal); sources = evidence.sources;
+            const evidence = await research(p, signal, telemetry); sources = evidence.sources;
             await stage('Building your day-by-day journey');
-            raw = await compose(p, evidence, signal);
+            raw = await compose(p, evidence, signal, undefined, telemetry);
+            try { finalize(raw, p, sources, id, mode); }
+            catch (error) {
+              const message = error instanceof Error ? error.message : 'The itinerary failed validation.';
+              if (/^These preferences need another look:|supported costs alone exceed your budget/.test(message)) throw error;
+              await stage('Refining the route and timing');
+              raw = await compose(p, evidence, signal, { draft: raw, validationError: message }, telemetry);
+            }
           }
           await stage('Checking days, connections and cost estimates');
           job.result = finalize(raw, p, sources, id, mode);
           job.stage = 'Your itinerary is ready';
           await save(id, job);
+          logTotal();
         } catch (e) {
-          job.error = e instanceof Error && /timeout|abort/i.test(e.name + e.message) ? 'Research took too long. Please retry; your preferences are saved.' : e instanceof Error ? e.message : 'We could not complete your itinerary. Please retry.';
+          job.error = e instanceof Error && /timeout|abort/i.test(e.name + e.message) ? 'Research took too long. Please retry; your preferences are kept temporarily in this tab.' : e instanceof Error ? e.message : 'We could not complete your itinerary. Please retry.';
           await save(id, job);
+          logTotal();
         }
       } else if (!job.result && !job.error) {
         // A retry joins the original lease instead of starting another paid request.

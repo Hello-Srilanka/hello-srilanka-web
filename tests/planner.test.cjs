@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const ts = require('typescript');
 // Compile project TypeScript in-memory; no runtime package needed for these tests.
 require.extensions['.ts'] = (mod, filename) => mod._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, filename);
-const { defaults, dayCount, dayDate, validatePreferences, readPreferences, groupBudget } = require('../lib/planner/model.ts');
+const { defaults, dayCount, dayDate, validatePreferences, readPreferences, groupBudget, itineraryRequestPreferences } = require('../lib/planner/model.ts');
 const { sampleDraft } = require('../lib/planner/sample.ts');
 const { finalize } = require('../lib/planner/validation.ts');
 const p = { ...defaults, undecided: true, interests: ['Nature', 'Food'] };
@@ -22,6 +22,19 @@ test('validates dates, children, bounds and per-person budget', () => {
   assert.ok(validatePreferences({ ...p, undecided: false, arrivalDate: '2027-02-30', departureDate: '2027-03-05' }).arrivalDate);
   assert.ok(validatePreferences({ ...p, budget: 'Infinity' }).budget);
   assert.throws(() => readPreferences({ ...p, adults: '2' }));
+});
+test('normalizes fixed and flexible date inputs before generation', () => {
+  const fixed = readPreferences({ ...p, undecided: false, arrivalDate: '2026-12-31', departureDate: '2027-01-15', duration: 7, month: 'March' });
+  assert.equal(dayCount(fixed), 16);
+  assert.equal(fixed.duration, 16);
+  assert.equal(fixed.month, 'Any month');
+  const fixedRequest = itineraryRequestPreferences(fixed);
+  assert.deepEqual(fixedRequest.datePlan, { mode: 'fixed', arrivalDate: '2026-12-31', departureDate: '2027-01-15', dayCount: 16 });
+  assert.equal(Object.hasOwn(fixedRequest, 'duration'), false);
+  assert.equal(Object.hasOwn(fixedRequest, 'month'), false);
+  const flexible = readPreferences({ ...p, undecided: true, arrivalDate: '2026-12-31', departureDate: '2027-01-15', duration: 7 });
+  assert.equal(flexible.arrivalDate, '');
+  assert.equal(flexible.departureDate, '');
 });
 test('sample supports every duration with continuous overnights and no fabricated prices', () => {
   for (let duration = 1; duration <= 21; duration++) {
@@ -75,28 +88,44 @@ test('flexible time windows respect departure and arrival, including an early de
 });
 test('provider uses web search, retains source timestamps and requests strict structured output', async () => {
   const { research, compose } = require('../lib/planner/provider.ts');
-  const original = global.fetch; const calls = [];
+  const original = global.fetch, originalInfo = console.info; const calls = [], recorded = [], logs = [];
+  console.info = line => logs.push(line);
   global.fetch = async (_url, options) => {
     const body = JSON.parse(options.body); calls.push(body);
     return Response.json(calls.length === 1 ? {
       status: 'completed', output: [
         { type: 'web_search_call', status: 'completed', action: { sources: [{ url: source.url, title: source.title }] } },
-        { type: 'message', content: [{ type: 'output_text', text: 'Research evidence', annotations: [{ type: 'url_citation', url: source.url, title: source.title }] }] },
-      ],
-    } : { status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(sampleDraft(p)) }] }] });
+        { type: 'message', content: [{ type: 'output_text', text: 'Research evidence', annotations: [{ type: 'url_citation', url: source.url, title: source.title, start_index: 0, end_index: 17 }] }] },
+      ], usage: { input_tokens: 1000, input_tokens_details: { cached_tokens: 100, cache_write_tokens: 200 }, output_tokens: 500, total_tokens: 1500 },
+    } : { status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(sampleDraft(p)) }] }], usage: { input_tokens: 2000, input_tokens_details: { cached_tokens: 0, cache_write_tokens: 0 }, output_tokens: 1000, total_tokens: 3000 } });
   };
   try {
-    const evidence = await research(p, AbortSignal.timeout(1000));
+    const evidence = await research(p, AbortSignal.timeout(1000), { requestId: 'safe-test-id', record: value => recorded.push(value) });
     assert.equal(calls[0].tools[0].type, 'web_search');
     assert.equal(calls[0].tool_choice, 'required');
     assert.equal(calls[0].store, false);
+    assert.equal(calls[0].model, 'gpt-6-sol');
+    assert.equal(calls[0].reasoning.effort, 'low');
+    assert.match(calls[0].input, /"datePlan":\{"mode":"flexible","durationDays":7/);
+    assert.doesNotMatch(calls[0].input, /"arrivalDate"|"departureDate"/);
     assert.equal(evidence.sources.length, 1);
+    assert.match(evidence.text, /\[s1\]/);
     assert.ok(Date.parse(evidence.sources[0].retrievedAt));
+    assert.equal(recorded[0].webSearchCalls, 1);
+    assert.ok(Math.abs(recorded[0].estimatedCostUsd - 0.01692) < 1e-9);
+    assert.match(logs[0], /^\[AI usage\] request_id=safe-test-id stage=research model=gpt-6-sol .*estimated_cost_usd=0\.016920 .*time_seconds=/);
     await compose(p, evidence, AbortSignal.timeout(1000));
     assert.equal(calls[1].text.format.strict, true);
     assert.equal(calls[1].text.format.type, 'json_schema');
+    assert.equal(calls[1].model, 'gpt-6-sol');
+    assert.equal(calls[1].reasoning.effort, 'medium');
+    assert.equal(JSON.parse(calls[1].input).preferences.datePlan.durationDays, 7);
+    assert.equal(Object.hasOwn(JSON.parse(calls[1].input).preferences, 'duration'), false);
     assert.match(calls[1].instructions, /untrusted data/);
-  } finally { global.fetch = original; }
+    await compose(p, evidence, AbortSignal.timeout(1000), { draft: sampleDraft(p), validationError: 'Day 2 does not connect.' });
+    assert.equal(JSON.parse(calls[2].input).repair.validationError, 'Day 2 does not connect.');
+    assert.match(calls[2].instructions, /Correct the previous draft/);
+  } finally { global.fetch = original; console.info = originalInfo; }
 });
 test('provider rejects failed searches, refusals, incomplete JSON and provider errors', async () => {
   const { research, compose } = require('../lib/planner/provider.ts');
@@ -127,4 +156,14 @@ test('discovery validates only the current chapter and migrates previous drafts'
   assert.equal(restoreDiscoveryStep(4, undefined), 5, 'Old review remains review');
   assert.equal(restoreDiscoveryStep(3, 2), 3, 'Current drafts keep their chapter');
   assert.equal(journeyStory(unfinished).duration, null, 'Undecided/invalid dates never become a made-up duration');
+});
+test('planner session drafts expire and never contain completed itineraries', () => {
+  const { plannerSessionTtl, serializePlannerSession, parsePlannerSession, isPristinePlannerSession } = require('../lib/planner/session.ts');
+  const now = 1_800_000_000_000;
+  const state = { preferences: p, step: 3, furthest: 3, editing: false, screen: 'form', requestId: null };
+  const raw = serializePlannerSession(state, now);
+  assert.equal(parsePlannerSession(raw, now + plannerSessionTtl - 1).step, 3);
+  assert.equal(parsePlannerSession(raw, now + plannerSessionTtl), null);
+  assert.equal(Object.hasOwn(JSON.parse(raw), 'itinerary'), false);
+  assert.equal(isPristinePlannerSession({ preferences: defaults, step: 0, furthest: 0, editing: false, screen: 'form', requestId: null }), true);
 });

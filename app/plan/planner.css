@@ -237,3 +237,4 @@
 @media(max-height:650px){
   .discovery-sidebar{display:none}.discovery-layout{grid-template-columns:1fr}.discovery-content{max-width:900px}
 }
+.result-ai{background:#e4ece2;border-color:#bccdb8}

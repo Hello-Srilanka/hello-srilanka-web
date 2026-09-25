@@ -1,4 +1,4 @@
-import { dayCount, groupBudget, type Draft, type Itinerary, type Preferences, type Source } from './model';
+import { dayCount, dayTimeBudgets, groupBudget, type Draft, type Itinerary, type Preferences, type Source } from './model';
 
 type Schema = { type: string | string[]; properties?: Record<string, Schema>; items?: Schema; enum?: unknown[]; required?: string[]; additionalProperties?: boolean };
 const str: Schema = { type: 'string' }, num: Schema = { type: 'number' }, nullableNum: Schema = { type: ['number', 'null'] };
@@ -88,19 +88,11 @@ export function finalize(raw: unknown, p: Preferences, sources: Source[], id: st
       addCost(item.cost, item.kind === 'transport' ? 'Transport' : 'Activities');
     });
     if (!same(at, d.endLocation)) throw new Error(`Day ${d.number} is missing its final transfer. Please retry.`);
-    // Flexible windows, with flight-day time reserved for airport formalities.
-    const earlyDeparture = index === draft.days.length - 1 && p.departureTime && p.departureTime < '11:00';
-    const arrivalMinutes = index === 0 && p.arrivalTime ? Number(p.arrivalTime.slice(0, 2)) * 60 + Number(p.arrivalTime.slice(3)) + 90 : earlyDeparture ? 0 : 8 * 60;
-    const departureMinutes = index === draft.days.length - 1 && p.departureTime ? Number(p.departureTime.slice(0, 2)) * 60 + Number(p.departureTime.slice(3)) - 180 : 22 * 60;
-    const available = Math.max(0, departureMinutes - arrivalMinutes);
+    // Keep the model's supplied flexible-window budgets identical to validation.
+    const timeBudget = dayTimeBudgets(p)[index];
     const cap = p.pace === 'Relaxed' ? 480 : p.pace === 'Balanced' ? 600 : 720;
-    if (minutes > Math.min(cap, available) || periodMinutes.some(m => m > 360)) throw new Error(`Day ${d.number} is too full for your pace or flight times. Adjust your timing or retry.`);
-    if (mode === 'live') {
-      const windows = [[0, 12 * 60], [12 * 60, 18 * 60], [18 * 60, 24 * 60]];
-      if (periodMinutes.some((minutes, slot) => minutes > Math.max(0, Math.min(windows[slot][1], departureMinutes) - Math.max(windows[slot][0], arrivalMinutes)))) {
-        throw new Error(`Day ${d.number} has activities outside your available morning, afternoon or evening. Please review flight times or retry.`);
-      }
-    }
+    const periodBudgets = [timeBudget.morningMinutes, timeBudget.afternoonMinutes, timeBudget.eveningMinutes];
+    if (minutes > Math.min(cap, timeBudget.totalMinutes) || periodMinutes.some((m, slot) => m > periodBudgets[slot])) throw new Error(`Day ${d.number} is too full for your pace or flight times. Adjust your timing or retry.`);
     if (d.stay) {
       if (d.stay.sourceId !== null) checkRefs([d.stay.sourceId]);
       if (mode === 'live' && !d.stay.sourceId) throw new Error('An accommodation suggestion has no researched provider link. Please retry.');

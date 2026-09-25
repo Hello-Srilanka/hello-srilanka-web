@@ -18,7 +18,7 @@ const destinationImage = (name: string) => {
   if (lower.includes('negombo')) return 'negombo-sunset';
   return null;
 };
-export default function ItineraryView({ itinerary: t, newTrip, storageAvailable }: { itinerary: Itinerary; newTrip: () => void; storageAvailable: boolean }) {
+export default function ItineraryView({ itinerary: t, newTrip }: { itinerary: Itinerary; newTrip: () => void }) {
   const [expanded, setExpanded] = useState<number[]>([1]);
   const [exporting, setExporting] = useState(false);
   if (exporting) return <ExportPreview itinerary={t} close={() => { setExporting(false); requestAnimationFrame(() => document.getElementById('download-itinerary')?.focus()); }} />;
@@ -26,12 +26,12 @@ export default function ItineraryView({ itinerary: t, newTrip, storageAvailable 
   const destinations = t.days.map(d => d.destination).filter((d, i, all) => i === 0 || d !== all[i - 1]);
   return <article className="itinerary-page">
     <div className="itinerary-topline"><p className="eyebrow">YOUR NEXT CHAPTER, DAY BY DAY</p><button className="plan-text" onClick={newTrip}>Start a new trip <ArrowUpRight size={16} /></button></div>
-    {t.mode === 'sample' && <div className="result-sample"><span>Sample itinerary</span> Illustrative ideas only. This is not live research; routes, prices and availability have not been verified.</div>}
+    {t.mode === 'sample' ? <div className="result-sample"><span>Sample itinerary</span> Illustrative ideas only. This is not live research; routes, prices and availability have not been verified.</div> : <div className="result-sample result-ai"><span>AI-planned itinerary</span> Built from your preferences and live web research. Check the linked sources before booking.</div>}
     <header className="itinerary-heading"><div><h1 id="result-heading" tabIndex={-1}>{t.title}</h1><p>{t.summary}</p></div><button id="download-itinerary" className="plan-primary" onClick={() => setExporting(true)}><Download size={18} /> Download as image</button></header>
     <div className="trip-facts"><div><span>YOUR TIME HERE</span><strong>{dayCount(p)} days · {dayCount(p) - 1} nights</strong><small>{tripDates(p)}</small></div><div><span>YOUR PEOPLE</span><strong>{travellers(p)}</strong><small>{p.children ? `Children’s ages: ${p.ages.join(', ')}` : 'A journey for your group'}</small></div><div><span>YOUR RHYTHM</span><strong>{p.pace}</strong><small>{p.transport}</small></div><div><span>ESTIMATED COST</span><strong>{t.knownCost === null ? 'To be confirmed' : money(t.knownCost, p.currency)}</strong><small>{t.knownCost === null ? 'No supported price total available' : 'Known group costs only · incomplete'}</small></div></div>
     <div className="budget-qualification"><Info size={17} /><p>{groupBudget(p) !== null ? `Your budget target is ${money(groupBudget(p)!, p.currency)} for the group, ${p.flightsIncluded ? 'including' : 'excluding'} international flights. ` : 'No budget target set. '}Major unknowns: {t.unknownCosts.join('; ')}. Budget fit cannot be confirmed until these costs are known.</p></div>
     <div className="destination-sequence" aria-label="Destinations in order"><MapPin size={16} />{destinations.map((d, i) => <span key={`${d}-${i}`}>{i > 0 && <b aria-hidden="true">→</b>}{d}</span>)}</div>
-    <div className="days-heading"><div><h2>The days ahead.</h2><p>A little structure. Plenty of room for the moment.</p></div><span><Check size={15} /> {storageAvailable ? 'Saved on this device' : 'Available in this tab'}</span></div>
+    <div className="days-heading"><div><h2>The days ahead.</h2><p>A little structure. Plenty of room for the moment.</p></div><span><Check size={15} /> Available in this tab</span></div>
     <div className="day-list">{t.days.map(day => {
       const open = expanded.includes(day.number), photo = destinationImage(day.destination), date = dayDate(p, day.number - 1);
       return <section className={`day-card ${open ? 'expanded' : ''}`} key={day.number}><h3><button className="day-toggle" aria-expanded={open} aria-controls={`day-${day.number}`} onClick={() => setExpanded(old => open ? old.filter(d => d !== day.number) : [...old, day.number])}><span className="day-number"><small>DAY</small>{String(day.number).padStart(2, '0')}</span>{photo && <span className="day-thumbnail"><Image src={`/images/${photo}.webp`} alt="" fill sizes="84px" /></span>}<span className="day-summary"><span className="day-date">{date ? dateLabel(date) : `Your ${day.number === 1 ? 'first' : 'next'} island day`}</span><strong>{day.destination}</strong><span>{day.highlights}</span><small><BedDouble size={13} />{day.overnight ? `Overnight in ${day.overnight}` : `Departure · ${day.endLocation}`}</small></span><ChevronDown size={21} className="day-chevron" /></button></h3>

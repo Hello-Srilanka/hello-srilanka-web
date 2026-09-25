@@ -72,7 +72,7 @@ export default function PlanningForm({ p, step, furthest, editing, errors, updat
         </div>
         <div className="form-actions discovery-actions">{step > 0 ? <button className="plan-back" type="button" onClick={() => go(editing ? reviewStep : step - 1)}><ArrowLeft size={17} />{editing ? 'Back to my journey' : 'Back'}</button> : <span className="first-step-note"><Check size={14} /> No account. Just you.</span>}<button className="plan-primary" type="submit" disabled={step === reviewStep && mode === 'checking'}>{step === reviewStep ? 'Create my itinerary' : nextLabel}<ArrowUpRight size={19} /></button></div>
       </form>
-      <p className="form-footnote">Your progress is saved on this device. Pick up where you left off.</p>
+      <p className="form-footnote">Your progress is kept in this tab for up to 2 hours and removed when your itinerary is ready.</p>
       {step === 0 && saved && <button className="saved-journey-link plan-text" type="button" onClick={resume}>Return to your saved itinerary <ArrowUpRight size={15} /></button>}
     </section>
   </div>;
