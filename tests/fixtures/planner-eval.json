@@ -1,0 +1,38 @@
+[
+  {
+    "id": "short-nature",
+    "preferences": { "undecided": true, "duration": 3, "month": "February", "interests": ["Nature"], "pace": "Relaxed" }
+  },
+  {
+    "id": "week-culture-food",
+    "preferences": { "undecided": true, "duration": 7, "month": "March", "interests": ["Culture", "Food"], "pace": "Balanced" }
+  },
+  {
+    "id": "two-weeks-coast",
+    "preferences": { "undecided": true, "duration": 14, "month": "January", "interests": ["Beaches", "Local life"], "pace": "Relaxed" }
+  },
+  {
+    "id": "twenty-one-days",
+    "preferences": { "undecided": false, "arrivalDate": "2027-12-20", "departureDate": "2028-01-09", "interests": ["Nature", "Culture", "Food", "Scenic journeys"], "pace": "Balanced" }
+  },
+  {
+    "id": "family-children",
+    "preferences": { "undecided": true, "duration": 8, "month": "July", "adults": 2, "children": 2, "ages": ["8", "12"], "interests": ["Nature", "Wildlife"], "pace": "Relaxed" }
+  },
+  {
+    "id": "step-free-access",
+    "preferences": { "undecided": true, "duration": 7, "month": "February", "interests": ["Culture", "Food"], "pace": "Relaxed", "accessibility": "Step-free access and minimal walking are required; do not assume an attraction is accessible without evidence." }
+  },
+  {
+    "id": "different-airports",
+    "preferences": { "undecided": true, "duration": 6, "month": "April", "arrival": "Bandaranaike International Airport (CMB)", "departure": "Mattala Rajapaksa International Airport (HRI)", "interests": ["Wildlife", "Beaches"], "pace": "Balanced" }
+  },
+  {
+    "id": "sparse-north",
+    "preferences": { "undecided": true, "duration": 5, "month": "August", "interests": ["Local life", "Culture"], "mustVisit": "Jaffna", "pace": "Balanced" }
+  },
+  {
+    "id": "one-day-transfer",
+    "preferences": { "undecided": true, "duration": 1, "month": "Any month", "interests": ["Food"], "pace": "Relaxed" }
+  }
+]

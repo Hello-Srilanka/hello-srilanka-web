@@ -75,7 +75,7 @@ export default function Planner() {
     if (busy.current) return;
     const e = validatePreferences(p); setErrors(e);
     if (Object.keys(e).length) {
-      const invalidStep = Array.from({ length: reviewStep }, (_, i) => i).find(i => Object.keys(discoveryErrors(p, i)).length) ?? 0;
+      const invalidStep = Array.from({ length: reviewStep }, (_, i) => i).find(i => Object.keys(discoveryErrors(p, i)).length) ?? reviewStep;
       setStep(invalidStep); setEditing(true); setErrors(discoveryErrors(p, invalidStep));
       setFailure('Please correct these details before creating your itinerary.'); focusHeading(); return;
     }

@@ -17,6 +17,7 @@ export const draftSchema = object({
     }) }, stay: { ...stay, type: ['object', 'null'] },
   }) },
 });
+export const daySchema = draftSchema.properties!.days.items!;
 function checkShape(value: unknown, s: Schema, path = 'itinerary'): void {
   const type = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
   if (!(Array.isArray(s.type) ? s.type : [s.type]).includes(type)) throw new Error(`Incomplete response: ${path} has an invalid format.`);
@@ -33,7 +34,22 @@ function checkShape(value: unknown, s: Schema, path = 'itinerary'): void {
     if (Object.keys(obj).some(k => !s.properties![k])) throw new Error(`Unexpected field at ${path}.`);
   }
 }
+export function mergeDayRepair(raw: unknown, replacement: unknown, dayNumber: number): Draft {
+  checkShape(raw, draftSchema);
+  checkShape(replacement, daySchema, 'repaired day');
+  const draft = raw as Draft;
+  if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > draft.days.length || (replacement as Draft['days'][number]).number !== dayNumber) {
+    throw new Error('The day repair did not match the requested day. Please retry.');
+  }
+  return { ...draft, days: draft.days.map((day, index) => index === dayNumber - 1 ? replacement as Draft['days'][number] : day) };
+}
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+export class DayValidationError extends Error {
+  constructor(readonly dayNumber: number, message: string) {
+    super(message);
+    this.name = 'DayValidationError';
+  }
+}
 export function safeUrl(url: string) {
   try { const u = new URL(url); return u.protocol === 'https:' && !u.username && !u.password && u.hostname.includes('.') && !/^(localhost|127\.|10\.|192\.168\.|169\.254\.)/.test(u.hostname); } catch { return false; }
 }
@@ -55,7 +71,7 @@ export function finalize(raw: unknown, p: Preferences, sources: Source[], id: st
     total += Math.round(c.amount * 100); priced++;
   };
   const seenActivities = new Set<string>();
-  draft.days.forEach((d, index) => {
+  const validateDay = (d: Draft['days'][number], index: number) => {
     if (d.number !== index + 1 || !d.destination.trim() || !d.highlights.trim() || !d.items.length || d.items.length > 9) throw new Error('A day has missing or invalid details. Please retry.');
     const expectedStart = index === 0 ? p.arrival : draft.days[index - 1].overnight;
     if (!expectedStart || !same(d.startLocation, expectedStart)) throw new Error(`Day ${d.number} does not connect to the previous night or arrival location. Please retry.`);
@@ -98,6 +114,13 @@ export function finalize(raw: unknown, p: Preferences, sources: Source[], id: st
       if (d.stay.sourceId !== null) checkRefs([d.stay.sourceId]);
       if (mode === 'live' && !d.stay.sourceId) throw new Error('An accommodation suggestion has no researched provider link. Please retry.');
       addCost(d.stay.cost, 'Accommodation');
+    }
+  };
+  draft.days.forEach((d, index) => {
+    try { validateDay(d, index); }
+    catch (error) {
+      if (error instanceof Error) throw new DayValidationError(index + 1, error.message);
+      throw error;
     }
   });
   const budget = groupBudget(p);

@@ -19,14 +19,14 @@ export type Preferences = {
   arrival: string; departure: string; arrivalTime: string; departureTime: string;
   adults: number; children: number; ages: string[]; interests: string[];
   pace: 'Relaxed' | 'Balanced' | 'Packed'; budget: string; currency: string;
-  budgetBasis: 'group' | 'person'; transport: string; accommodation: string;
+  transport: string; accommodation: string;
   mustVisit: string; accessibility: string;
 };
 export const defaults: Preferences = {
   undecided: false, arrivalDate: '', departureDate: '', duration: 7, month: 'Any month',
   arrival: 'Bandaranaike International Airport (CMB)', departure: 'Bandaranaike International Airport (CMB)',
   arrivalTime: '', departureTime: '', adults: 2, children: 0, ages: [], interests: [],
-  pace: 'Balanced', budget: '', currency: 'USD', budgetBasis: 'group',
+  pace: 'Balanced', budget: '', currency: 'USD',
   transport: 'Help me decide', accommodation: 'Help me decide', mustVisit: '', accessibility: '',
 };
 export function dayCount(p: Preferences) {
@@ -79,7 +79,7 @@ export function tripDates(p: Preferences) {
 }
 export function travellers(p: Preferences) { return `${p.adults} adult${p.adults === 1 ? '' : 's'}${p.children ? ` · ${p.children} child${p.children === 1 ? '' : 'ren'}` : ''}`; }
 export function money(amount: number, currency: string) { return new Intl.NumberFormat('en-GB', { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount); }
-export function groupBudget(p: Preferences) { return p.budget ? Number(p.budget) * (p.budgetBasis === 'person' ? p.adults + p.children : 1) : null; }
+export function groupBudget(p: Preferences) { return p.budget ? Number(p.budget) : null; }
 export type Errors = Record<string, string>;
 export function validatePreferences(p: Preferences, step?: number): Errors {
   const e: Errors = {};
@@ -107,7 +107,6 @@ export function validatePreferences(p: Preferences, step?: number): Errors {
     if (!['Relaxed', 'Balanced', 'Packed'].includes(p.pace)) e.pace = 'Choose your pace.';
     if (p.budget && (!/^\d+(\.\d{1,2})?$/.test(p.budget) || Number(p.budget) <= 0 || Number(p.budget) > 100000000)) e.budget = 'Enter a positive amount, or leave blank for help deciding.';
     if (!(currencies as readonly string[]).includes(p.currency)) e.currency = 'Choose a supported currency.';
-    if (!['group', 'person'].includes(p.budgetBasis)) e.budgetBasis = 'Choose who the budget covers.';
     if (!(transports as readonly string[]).includes(p.transport)) e.transport = 'Choose a transport preference.';
     if (!(stays as readonly string[]).includes(p.accommodation)) e.accommodation = 'Choose a stay preference.';
     if (p.mustVisit.length > 600) e.mustVisit = 'Use up to 600 characters.';
@@ -123,7 +122,11 @@ export function readPreferences(value: unknown): Preferences {
       if (!Array.isArray(p[key]) || (p[key] as unknown[]).some(v => typeof v !== 'string') || (p[key] as unknown[]).length > 20) throw new Error('Invalid preference format.');
     } else if (typeof p[key] !== typeof base) throw new Error('Invalid preference format.');
   }
-  return normalizePreferences(Object.fromEntries(Object.keys(defaults).map(k => [k, p[k]])) as Preferences);
+  const current = Object.fromEntries(Object.keys(defaults).map(k => [k, p[k]])) as Preferences;
+  if (p.budgetBasis === 'person' && /^\d+(\.\d{1,2})?$/.test(current.budget) && Number(current.budget) > 0 && Number.isInteger(current.adults) && Number.isInteger(current.children)) {
+    current.budget = String(Math.round(Number(current.budget) * (current.adults + current.children) * 100) / 100);
+  }
+  return normalizePreferences(current);
 }
 export type Source = { id: string; title: string; url: string; retrievedAt: string | null };
 export type Cost = { amount: number | null; basis: string; sourceIds: string[] };

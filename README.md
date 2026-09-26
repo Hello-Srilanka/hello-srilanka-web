@@ -32,11 +32,11 @@ The build uses Next.js’s Webpack compiler. Serve media with correct MIME types
 
 Every existing planning CTA opens `/plan`:
 
-**Your moments → your rhythm → your time → your budget → your comforts → your journey → generation → read-only itinerary → PNG export.**
+**Your interests → your pace → your trip → review → generation → read-only itinerary → PNG export.**
 
 - Dates or 1–21 relative days; arrival/departure locations and optional local flight times; adults, children and conditional ages.
 - Discovery starts with six photographic experience cards, with four more available to explore. Selections update a travel postcard and preference summary. Three pace choices show illustrative morning/midday/evening examples.
-- Dates and traveller counters come after discovery. Flight details are expandable; children’s ages appear only when relevant. The budget covers time in Sri Lanka, excluding international flights. Budget and comforts have separate chapters, including photographic stay preferences, transport choices and optional personal notes.
+- Dates and traveller counters come after interests and pace. Children’s ages appear only when relevant; walking, dietary and access needs stay visible on the trip screen. Review offers an optional “Personalise further” panel for a total group budget, hotel and transport preferences, and must-visits. The budget covers time in Sri Lanka, excluding international flights.
 - Review opens with a personalised photo brief. Edit links return directly to review after validating the edited chapter. Existing device-local drafts migrate to the new chapter order without discarding their answers or completed itinerary.
 - Accessible labelled controls, visible progress, review edit links, refresh recovery and temporary session persistence. Optional account creation uses Supabase Auth.
 - Full-width expandable itinerary cards with flexible periods, connected transfers, overnight suggestions, provider/source links, qualified costs, assumptions and caveats. **No maps**, per the MVP scope. No itinerary editing, chat, sharing or booking management.

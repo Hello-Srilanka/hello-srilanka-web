@@ -11,17 +11,23 @@ const { finalize } = require('../lib/planner/validation.ts');
 const p = { ...defaults, undecided: true, interests: ['Nature', 'Food'] };
 const source = { id: 's1', title: 'Provider', url: 'https://example.com/travel', retrievedAt: new Date().toISOString() };
 const finish = (draft, prefs = p, sources = [], mode = 'sample') => finalize(draft, prefs, sources, 'test-id', mode);
-test('validates dates, children, bounds and per-person budget', () => {
+test('validates dates, children, bounds and total group budget', () => {
   assert.deepEqual(validatePreferences(p), {});
   assert.equal(dayCount({ ...p, undecided: false, arrivalDate: '2027-01-01', departureDate: '2027-01-07' }), 7);
   assert.equal(dayDate(p, 0), null);
-  assert.equal(groupBudget({ ...p, budget: '100', budgetBasis: 'person', children: 1 }), 300);
+  assert.equal(groupBudget({ ...p, budget: '300', children: 1 }), 300);
   assert.ok(validatePreferences({ ...p, children: 1 }).ages);
   assert.ok(validatePreferences({ ...p, children: 1, ages: ['18'] }).ages);
   assert.ok(validatePreferences({ ...p, duration: 22 }).duration);
   assert.ok(validatePreferences({ ...p, undecided: false, arrivalDate: '2027-02-30', departureDate: '2027-03-05' }).arrivalDate);
   assert.ok(validatePreferences({ ...p, budget: 'Infinity' }).budget);
   assert.throws(() => readPreferences({ ...p, adults: '2' }));
+});
+test('restores old per-person budgets as the same total group target', () => {
+  const restored = readPreferences({ ...p, budget: '100.25', budgetBasis: 'person', adults: 2, children: 1, ages: ['8'] });
+  assert.equal(restored.budget, '300.75');
+  assert.equal(groupBudget(restored), 300.75);
+  assert.equal(Object.hasOwn(restored, 'budgetBasis'), false);
 });
 test('normalizes fixed and flexible date inputs before generation', () => {
   const fixed = readPreferences({ ...p, undecided: false, arrivalDate: '2026-12-31', departureDate: '2027-01-15', duration: 7, month: 'March' });
@@ -169,11 +175,12 @@ test('discovery validates only the current chapter and migrates previous drafts'
   assert.deepEqual(discoveryErrors(unfinished, 1), {}, 'Future budget errors do not block rhythm');
   assert.ok(discoveryErrors(unfinished, 2).arrivalDate);
   assert.ok(discoveryErrors(unfinished, 3).budget);
-  assert.deepEqual(discoveryErrors(unfinished, 4), {});
-  assert.ok(discoveryErrors(unfinished, 5).budget);
+  assert.ok(discoveryErrors({ ...unfinished, undecided: true, accessibility: 'x'.repeat(601) }, 2).accessibility);
   assert.equal(restoreDiscoveryStep(1, undefined), 2, 'Old basics becomes the time chapter');
-  assert.equal(restoreDiscoveryStep(4, undefined), 5, 'Old review remains review');
-  assert.equal(restoreDiscoveryStep(3, 2), 3, 'Current drafts keep their chapter');
+  assert.equal(restoreDiscoveryStep(4, undefined), 3, 'Old review remains review');
+  assert.equal(restoreDiscoveryStep(3, 2), 3, 'Previous budget chapter moves to optional preferences on review');
+  assert.equal(restoreDiscoveryStep(4, 2), 3, 'Previous comforts chapter moves to review');
+  assert.equal(restoreDiscoveryStep(2, 3), 2, 'Current drafts keep their chapter');
   assert.equal(journeyStory(unfinished).duration, null, 'Undecided/invalid dates never become a made-up duration');
 });
 test('planner session drafts expire and never contain completed itineraries', () => {
@@ -182,6 +189,13 @@ test('planner session drafts expire and never contain completed itineraries', ()
   const state = { preferences: p, step: 3, furthest: 3, editing: false, screen: 'form', requestId: null };
   const raw = serializePlannerSession(state, now);
   assert.equal(parsePlannerSession(raw, now + plannerSessionTtl - 1).step, 3);
+  const legacy = JSON.parse(raw);
+  legacy.flowVersion = 2;
+  legacy.step = 4;
+  legacy.preferences = { ...p, budget: '100', budgetBasis: 'person' };
+  const migrated = parsePlannerSession(JSON.stringify(legacy), now);
+  assert.equal(migrated.step, 3);
+  assert.equal(migrated.preferences.budget, '200');
   assert.equal(parsePlannerSession(raw, now + plannerSessionTtl), null);
   assert.equal(Object.hasOwn(JSON.parse(raw), 'itinerary'), false);
   assert.equal(isPristinePlannerSession({ preferences: defaults, step: 0, furthest: 0, editing: false, screen: 'form', requestId: null }), true);

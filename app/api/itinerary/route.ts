@@ -5,8 +5,8 @@ import { join } from 'node:path';
 import { readPreferences, validatePreferences, type Itinerary } from '@/lib/planner/model';
 import { finalize } from '@/lib/planner/validation';
 import { sampleDraft } from '@/lib/planner/sample';
-import { research, compose, type AiCallMetrics } from '@/lib/planner/provider';
-import { loadKnowledge } from '@/lib/knowledge/retrieval';
+import { type AiCallMetrics } from '@/lib/planner/provider';
+import { generateLiveItinerary } from '@/lib/planner/generate';
 
 export const runtime = 'nodejs';
 export const maxDuration = 240;
@@ -97,25 +97,11 @@ export async function POST(request: Request) {
         };
         try {
           const signal = AbortSignal.timeout(200000);
-          let raw: unknown, sources: Itinerary['sources'] = [];
-          if (mode === 'sample') { await stage('Preparing your sample itinerary'); raw = sampleDraft(p); }
-          else {
-            await stage('Checking reviewed Sri Lanka knowledge');
-            const knowledge = await loadKnowledge(p);
-            await stage(knowledge.complete ? 'Using reviewed destinations and connections' : 'Researching missing destinations, stays and transport');
-            const evidence = await research(p, signal, telemetry, knowledge); sources = evidence.sources;
-            await stage('Building your day-by-day journey');
-            raw = await compose(p, evidence, signal, undefined, telemetry);
-            try { finalize(raw, p, sources, id, mode); }
-            catch (error) {
-              const message = error instanceof Error ? error.message : 'The itinerary failed validation.';
-              if (/^These preferences need another look:|supported costs alone exceed your budget/.test(message)) throw error;
-              await stage('Refining the route and timing');
-              raw = await compose(p, evidence, signal, { draft: raw, validationError: message }, telemetry);
-            }
-          }
-          await stage('Checking days, connections and cost estimates');
-          job.result = finalize(raw, p, sources, id, mode);
+          if (mode === 'sample') {
+            await stage('Preparing your sample itinerary');
+            await stage('Checking days, connections and cost estimates');
+            job.result = finalize(sampleDraft(p), p, [], id, mode);
+          } else job.result = (await generateLiveItinerary(p, id, signal, telemetry, stage)).itinerary;
           job.stage = 'Your itinerary is ready';
           await save(id, job);
           logTotal();
