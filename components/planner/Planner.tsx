@@ -2,11 +2,12 @@
 /* eslint-disable react-hooks/set-state-in-effect -- Restore device-local state only after hydration. */
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Check, Compass, ArrowUpRight } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { defaults, validatePreferences, type Preferences, type Itinerary, type Errors } from '@/lib/planner/model';
 import PlanningForm from './PlanningForm';
 import { discoveryErrors, reviewStep } from '@/lib/planner/discovery';
 import ItineraryView from './ItineraryView';
+import GenerationScreen from './GenerationScreen';
 import { isPristinePlannerSession, legacyPlannerStorageKey, parsePlannerSession, plannerSessionKey, plannerSessionTtl, serializePlannerSession, type PlannerSession } from '@/lib/planner/session';
 type Screen = 'form' | 'generating' | 'result';
 export default function Planner() {
@@ -115,7 +116,7 @@ export default function Planner() {
     <main id="main">
       {storageNote && <div className="storage-notice" role="status">{storageNote}</div>}
       {mode === 'sample' && screen !== 'result' && <div className="sample-banner"><span>Sample mode</span> Explore the planner with an illustrative itinerary. Live research is not connected.</div>}
-      {!ready ? <div className="planner-initial" role="status">Getting your journey ready…</div> : screen === 'result' && itinerary ? <ItineraryView itinerary={itinerary} newTrip={newTrip} /> : screen === 'generating' ? <section className="generation-screen"><div className="generation-symbol"><Compass size={52} strokeWidth={1} /></div><p className="eyebrow">A JOURNEY WORTH MAKING YOURS</p><h1 id="generation-heading" tabIndex={-1}>{mode === 'sample' ? 'A glimpse of your Sri Lanka.' : 'Connecting the dots.'}</h1><p>{mode === 'sample' ? 'Preparing an illustrative journey so you can explore the experience.' : 'Thoughtful journeys take a little research. We’re finding the places and connections that fit your plans.'}</p><ol className="generation-stages" aria-live="polite">{stages.map((s, i) => <li key={s}>{i < stages.length - 1 ? <Check size={17} /> : <span className="stage-dot" />}<span>{s}</span></li>)}</ol><p className="small-note">Your answers are kept temporarily in this tab. If you refresh, you can reconnect from the review screen.</p></section> : <>{failure && <div className="planner-failure" role="alert"><strong>Let’s give that another look.</strong><p>{failure}</p>{mode === 'unavailable' && <button className="plan-text" onClick={() => window.location.reload()}>Check connection <ArrowUpRight size={16} /></button>}</div>}<PlanningForm p={p} step={step} furthest={furthest} editing={editing} errors={errors} update={update} go={go} next={next} generate={generate} mode={mode} saved={!!itinerary} resume={() => { setScreen('result'); focusHeading(); }} /></>}
+      {!ready ? <div className="planner-initial" role="status">Getting your journey ready…</div> : screen === 'result' && itinerary ? <ItineraryView itinerary={itinerary} newTrip={newTrip} /> : screen === 'generating' ? <GenerationScreen mode={mode} stages={stages} /> : <>{failure && <div className="planner-failure" role="alert"><strong>Let’s give that another look.</strong><p>{failure}</p>{mode === 'unavailable' && <button className="plan-text" onClick={() => window.location.reload()}>Check connection <ArrowUpRight size={16} /></button>}</div>}<PlanningForm p={p} step={step} furthest={furthest} editing={editing} errors={errors} update={update} go={go} next={next} generate={generate} mode={mode} saved={!!itinerary} resume={() => { setScreen('result'); focusHeading(); }} /></>}
     </main><footer className="planner-footer"><span>hello<span>srilanka</span>.</span><p>A little island. An endless feeling.</p></footer>
   </div>;
 }

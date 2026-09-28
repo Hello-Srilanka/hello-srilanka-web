@@ -26,7 +26,7 @@ export function parsePlannerSession(raw: string, now = Date.now()): PlannerSessi
   const furthest = Math.max(step, restoreDiscoveryStep(data.furthest ?? data.step, data.flowVersion));
   const requestId = typeof data.requestId === 'string' && /^[a-f0-9-]{36}$/.test(data.requestId) ? data.requestId : null;
   const generating = data.screen === 'generating' && requestId !== null;
-  return { preferences, step: generating ? reviewStep : step, furthest: generating ? reviewStep : furthest, editing: data.flowVersion === flowVersion && !!data.editing, screen: generating ? 'generating' : 'form', requestId };
+  return { preferences, step: generating ? reviewStep : step, furthest: generating ? reviewStep : furthest, editing: (data.flowVersion === flowVersion || data.flowVersion === 3) && !!data.editing, screen: generating ? 'generating' : 'form', requestId };
 }
 
 export function isPristinePlannerSession(state: PlannerSession) {

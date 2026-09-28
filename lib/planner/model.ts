@@ -1,3 +1,5 @@
+import { nationalityProfile, supportedNationalities } from './nationality';
+
 export const interests = [
   ['Nature', 'nuwara-tea-country', 'Green hills & wide-open spaces'],
   ['Beaches', 'arugam-fishing-boats', 'Salt air & slower days'],
@@ -18,6 +20,7 @@ export type Preferences = {
   undecided: boolean; arrivalDate: string; departureDate: string; duration: number; month: string;
   arrival: string; departure: string; arrivalTime: string; departureTime: string;
   adults: number; children: number; ages: string[]; interests: string[];
+  nationality: string; otherNationality: string; useNationalitySuggestions: boolean;
   pace: 'Relaxed' | 'Balanced' | 'Packed'; budget: string; currency: string;
   transport: string; accommodation: string;
   mustVisit: string; accessibility: string;
@@ -26,6 +29,7 @@ export const defaults: Preferences = {
   undecided: false, arrivalDate: '', departureDate: '', duration: 7, month: 'Any month',
   arrival: 'Bandaranaike International Airport (CMB)', departure: 'Bandaranaike International Airport (CMB)',
   arrivalTime: '', departureTime: '', adults: 2, children: 0, ages: [], interests: [],
+  nationality: '', otherNationality: '', useNationalitySuggestions: false,
   pace: 'Balanced', budget: '', currency: 'USD',
   transport: 'Help me decide', accommodation: 'Help me decide', mustVisit: '', accessibility: '',
 };
@@ -59,9 +63,16 @@ export function normalizePreferences(p: Preferences): Preferences {
   return { ...p, duration: Number.isInteger(calculatedDuration) ? calculatedDuration : p.duration, month: 'Any month' };
 }
 export function itineraryRequestPreferences(p: Preferences) {
-  const { undecided, arrivalDate, departureDate, duration, month, ...shared } = p;
+  const { undecided, arrivalDate, departureDate, duration, month, nationality, otherNationality, useNationalitySuggestions, ...shared } = p;
+  const profile = useNationalitySuggestions ? nationalityProfile(nationality) : null;
   return {
     ...shared,
+    ...(profile ? { nationality: nationality === 'Other' ? otherNationality.trim() : nationality } : {}),
+    nationalitySuggestions: profile ? {
+      enabled: true,
+      suggestedInterests: profile.interests,
+      activityIdeas: profile.ideas,
+    } : { enabled: false },
     datePlan: undecided
       ? { mode: 'flexible' as const, durationDays: duration, preferredMonth: month }
       : { mode: 'fixed' as const, arrivalDate, departureDate, dayCount: dayCount(p) },
@@ -100,6 +111,11 @@ export function validatePreferences(p: Preferences, step?: number): Errors {
     if (!Number.isInteger(p.children) || p.children < 0 || p.children > 8) e.children = 'Choose 0–8 children.';
     if (p.ages.length !== p.children || p.ages.some(a => !/^\d{1,2}$/.test(a) || Number(a) > 17)) e.ages = 'Enter each child’s age from 0 to 17.';
   }
+  if (step === undefined || step === 0) {
+    if (p.nationality && p.nationality !== 'Other' && p.nationality !== 'Prefer not to say' && !supportedNationalities.some(n => n.name === p.nationality)) e.nationality = 'Choose a nationality from the list.';
+    if (p.nationality === 'Other' && (!p.otherNationality.trim() || p.otherNationality.length > 80)) e.otherNationality = 'Search and choose a country.';
+    if (p.useNationalitySuggestions && !nationalityProfile(p.nationality)) e.useNationalitySuggestions = 'Choose one of the five supported nationalities to use these suggestions.';
+  }
   if (step === undefined || step === 2) {
     if (!p.interests.length || p.interests.some(i => !interests.some(([name]) => name === i)) || new Set(p.interests).size !== p.interests.length) e.interests = 'Choose at least one interest.';
   }
@@ -116,8 +132,9 @@ export function validatePreferences(p: Preferences, step?: number): Errors {
 }
 export function readPreferences(value: unknown): Preferences {
   if (!value || typeof value !== 'object') throw new Error('Your preferences could not be read. Please review the form.');
-  const p = value as Record<string, unknown>;
+  const p = { ...value } as Record<string, unknown>;
   for (const [key, base] of Object.entries(defaults)) {
+    if (p[key] === undefined && ['nationality', 'otherNationality', 'useNationalitySuggestions'].includes(key)) p[key] = base;
     if (Array.isArray(base)) {
       if (!Array.isArray(p[key]) || (p[key] as unknown[]).some(v => typeof v !== 'string') || (p[key] as unknown[]).length > 20) throw new Error('Invalid preference format.');
     } else if (typeof p[key] !== typeof base) throw new Error('Invalid preference format.');

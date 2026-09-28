@@ -42,6 +42,34 @@ test('normalizes fixed and flexible date inputs before generation', () => {
   assert.equal(flexible.arrivalDate, '');
   assert.equal(flexible.departureDate, '');
 });
+test('nationality suggestions require an explicit opt-in and a supported profile', () => {
+  const notOptedIn = { ...p, nationality: 'India' };
+  const plainRequest = itineraryRequestPreferences(notOptedIn);
+  assert.equal(plainRequest.nationalitySuggestions.enabled, false);
+  assert.equal(Object.hasOwn(plainRequest, 'nationality'), false);
+  const optedIn = { ...notOptedIn, useNationalitySuggestions: true, interests: ['Food', 'Nature'] };
+  const request = itineraryRequestPreferences(optedIn);
+  assert.equal(request.nationality, 'India');
+  assert.equal(request.nationalitySuggestions.enabled, true);
+  assert.ok(request.nationalitySuggestions.suggestedInterests.includes('Food'));
+  assert.equal(sampleDraft(optedIn).days[0].items.at(-1).title.startsWith('A taste of Sri Lanka'), true);
+  const nationalityIdeas = sampleDraft({ ...optedIn, interests: ['Nature'] });
+  assert.match(nationalityIdeas.days[1].items.at(-1).title, /Stories of the island/);
+  assert.ok(validatePreferences({ ...p, nationality: 'Other', otherNationality: 'Canadian', useNationalitySuggestions: true }).useNationalitySuggestions);
+  assert.ok(validatePreferences({ ...p, nationality: 'Other' }).otherNationality);
+  const previousDraft = { ...p }; delete previousDraft.nationality; delete previousDraft.otherNationality; delete previousDraft.useNationalitySuggestions;
+  const restored = readPreferences(previousDraft);
+  assert.equal(restored.useNationalitySuggestions, false);
+  assert.equal(restored.nationality, '');
+});
+test('other country choices include searchable countries and flags', () => {
+  const { countryFlag, otherCountries } = require('../lib/planner/countries.ts');
+  assert.equal(countryFlag('IN'), '🇮🇳');
+  assert.ok(otherCountries.some(country => country.name === 'Sri Lanka' && country.flag === '🇱🇰'));
+  assert.ok(otherCountries.some(country => country.name === 'Canada'));
+  assert.equal(otherCountries.some(country => country.code === 'IN'), false);
+  assert.equal(otherCountries.length > 200, true);
+});
 test('ignores the retired international-flights budget choice in saved preferences', () => {
   const restored = readPreferences({ ...p, flightsIncluded: true });
   assert.equal(Object.hasOwn(restored, 'flightsIncluded'), false);
@@ -171,16 +199,19 @@ test('reviewed knowledge bypasses live search only when coverage is complete', a
 test('discovery validates only the current chapter and migrates previous drafts', () => {
   const { discoveryErrors, restoreDiscoveryStep, journeyStory } = require('../lib/planner/discovery.ts');
   const unfinished = { ...defaults, interests: ['Nature'], budget: '-50' };
-  assert.deepEqual(discoveryErrors(unfinished, 0), {}, 'Dates and budget do not block choosing moments');
-  assert.deepEqual(discoveryErrors(unfinished, 1), {}, 'Future budget errors do not block rhythm');
-  assert.ok(discoveryErrors(unfinished, 2).arrivalDate);
-  assert.ok(discoveryErrors(unfinished, 3).budget);
-  assert.ok(discoveryErrors({ ...unfinished, undecided: true, accessibility: 'x'.repeat(601) }, 2).accessibility);
-  assert.equal(restoreDiscoveryStep(1, undefined), 2, 'Old basics becomes the time chapter');
-  assert.equal(restoreDiscoveryStep(4, undefined), 3, 'Old review remains review');
-  assert.equal(restoreDiscoveryStep(3, 2), 3, 'Previous budget chapter moves to optional preferences on review');
-  assert.equal(restoreDiscoveryStep(4, 2), 3, 'Previous comforts chapter moves to review');
-  assert.equal(restoreDiscoveryStep(2, 3), 2, 'Current drafts keep their chapter');
+  assert.deepEqual(discoveryErrors(unfinished, 0), {}, 'Dates and budget do not block nationality');
+  assert.deepEqual(discoveryErrors(unfinished, 1), {}, 'Future budget errors do not block interests');
+  assert.deepEqual(discoveryErrors(unfinished, 2), {}, 'Future budget errors do not block pace');
+  assert.ok(discoveryErrors(unfinished, 3).arrivalDate);
+  assert.ok(discoveryErrors(unfinished, 4).budget);
+  assert.ok(discoveryErrors({ ...unfinished, undecided: true, accessibility: 'x'.repeat(601) }, 3).accessibility);
+  assert.ok(discoveryErrors({ ...unfinished, nationality: 'Other' }, 0).otherNationality);
+  assert.equal(restoreDiscoveryStep(1, undefined), 3, 'Old basics becomes the trip chapter');
+  assert.equal(restoreDiscoveryStep(4, undefined), 4, 'Old review remains review');
+  assert.equal(restoreDiscoveryStep(3, 2), 4, 'Previous budget chapter moves to review');
+  assert.equal(restoreDiscoveryStep(4, 2), 4, 'Previous comforts chapter moves to review');
+  assert.equal(restoreDiscoveryStep(2, 3), 3, 'Previous trip chapter keeps its content');
+  assert.equal(restoreDiscoveryStep(0, 4), 0, 'New drafts open at nationality');
   assert.equal(journeyStory(unfinished).duration, null, 'Undecided/invalid dates never become a made-up duration');
 });
 test('planner session drafts expire and never contain completed itineraries', () => {
@@ -194,7 +225,7 @@ test('planner session drafts expire and never contain completed itineraries', ()
   legacy.step = 4;
   legacy.preferences = { ...p, budget: '100', budgetBasis: 'person' };
   const migrated = parsePlannerSession(JSON.stringify(legacy), now);
-  assert.equal(migrated.step, 3);
+  assert.equal(migrated.step, 4);
   assert.equal(migrated.preferences.budget, '200');
   assert.equal(parsePlannerSession(raw, now + plannerSessionTtl), null);
   assert.equal(Object.hasOwn(JSON.parse(raw), 'itinerary'), false);
