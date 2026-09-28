@@ -5,4 +5,4 @@ import '../auth/auth.css';
 
 export const metadata: Metadata = { title: 'Create account | HelloSriLanka', robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
-export default function SignupPage() { return <AuthForm mode="signup" configured={supabaseConfigured()} />; }
+export default function SignupPage() { return <AuthForm mode="signup" configured={supabaseConfigured()} googleClientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID} />; }

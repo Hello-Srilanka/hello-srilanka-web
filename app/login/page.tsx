@@ -6,5 +6,5 @@ import '../auth/auth.css';
 export const metadata: Metadata = { title: 'Sign in | HelloSriLanka', robots: { index: false, follow: false } };
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ message?: string }> }) {
   const { message } = await searchParams;
-  return <AuthForm mode="login" configured={supabaseConfigured()} message={message} />;
+  return <AuthForm mode="login" configured={supabaseConfigured()} googleClientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID} message={message} />;
 }

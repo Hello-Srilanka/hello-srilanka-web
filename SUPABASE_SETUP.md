@@ -16,6 +16,12 @@ This project uses Supabase Auth for email/password accounts and Postgres for rev
 
 6. Sign in at `/login`, open `/account`, then `/admin`. Add one sourced claim per record as a draft, open the source and check it, then approve it. Editing an approved fact returns it to draft. Previous versions are retained in `knowledge_revisions` for audit. Approved facts expire after 30 days for stays, 60 for connections, 90 for activities and seasonal facts, or 180 for destination facts. Review an expired record again to renew it. Archiving removes it from itinerary retrieval.
 
+## Google sign-in and One Tap
+
+The login and signup pages offer Google sign-in and show Google One Tap to visitors without a Supabase session. In **Supabase → Authentication → Providers → Google**, enable Google and enter the web OAuth client ID and client secret from **Google Cloud → Google Auth Platform → Clients**. Set `NEXT_PUBLIC_GOOGLE_CLIENT_ID` to that same web client ID in `.env.local` and in the deployed environment. The client ID is public; keep the client secret only in Supabase.
+
+In Google Cloud, add `http://localhost:3000` and your production origin to **Authorized JavaScript origins**. For this hosted Supabase project, add **exactly** `https://rbpfdgvnktaukkrnupux.supabase.co/auth/v1/callback` to **Authorized redirect URIs** on the web OAuth client whose ID is in `.env.local`. This is the URL Google redirects to; `http://localhost:3000/auth/callback` belongs in Supabase **Authentication → URL Configuration**, not in Google's redirect URI field. Allow each site's `/auth/callback` URL in Supabase as described above. If Google's consent screen is in testing mode, add the accounts you will use under **Audience → Test users**. A dismissed One Tap prompt can be reopened later by Google; the visible **Continue with Google** button always starts the regular Supabase OAuth flow.
+
 The itinerary endpoint retrieves approved, unexpired facts for the traveller's dates and interests. When a single-base route has enough supported activities, a stay, seasonal context, and both airport connections, composition uses those facts without a new web search. Otherwise live research fills gaps. Empty knowledge collections continue to use the existing live research flow. Provider prices and availability still need date-specific confirmation.
 
 The admin page and its server actions check the authenticated user against `admin_users`; database RLS independently enforces the same access. No account or admin access can be obtained solely by setting client-side user metadata.
