@@ -17,6 +17,7 @@ export default function Planner() {
   const [editing, setEditing] = useState(false);
   const [screen, setScreen] = useState<Screen>('form');
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
+  const [historyStatus, setHistoryStatus] = useState<'guest' | 'saved' | 'failed'>('guest');
   const [ready, setReady] = useState(false);
   const [storageNote, setStorageNote] = useState('');
   const [mode, setMode] = useState('checking');
@@ -97,7 +98,7 @@ export default function Planner() {
         if (event.mode) setMode(event.mode);
         if (event.stage) setStages(old => old.includes(event.stage) ? old : [...old, event.stage]);
         if (event.error) { if (event.terminal) setRequestId(null); throw new Error(event.error); }
-        if (event.result) { try { sessionStorage.removeItem(plannerSessionKey); } catch { /* Storage may be unavailable. */ } setItinerary(event.result); setScreen('result'); setRequestId(null); complete = true; focusHeading(); }
+        if (event.result) { try { sessionStorage.removeItem(plannerSessionKey); } catch { /* Storage may be unavailable. */ } setItinerary(event.result); setHistoryStatus(event.history === 'saved' ? 'saved' : event.history === 'failed' ? 'failed' : 'guest'); setScreen('result'); setRequestId(null); complete = true; focusHeading(); }
       };
       while (true) {
         const { value, done } = await reader.read();
@@ -111,12 +112,12 @@ export default function Planner() {
       setScreen('form'); setStep(reviewStep); setFurthest(reviewStep); focusHeading();
     } finally { clearTimeout(timeout); activeController.current = null; busy.current = false; }
   }
-  function newTrip() { try { sessionStorage.removeItem(plannerSessionKey); } catch { /* Storage may be unavailable. */ } setP({ ...defaults }); setStep(0); setFurthest(0); setEditing(false); setScreen('form'); setErrors({}); setFailure(''); setRequestId(null); focusHeading(); }
+  function newTrip() { try { sessionStorage.removeItem(plannerSessionKey); } catch { /* Storage may be unavailable. */ } setP({ ...defaults }); setStep(0); setFurthest(0); setEditing(false); setScreen('form'); setErrors({}); setFailure(''); setHistoryStatus('guest'); setRequestId(null); focusHeading(); }
   return <div className="planner-app"><header className="planner-header"><Link className="wordmark" href="/" aria-label="HelloSriLanka home">hello<span>srilanka</span><span className="brand-period">.</span></Link><span className="planner-brand-promise">YOUR SRI LANKA. YOUR WAY.</span><Link href="/account" className="planner-home">Account</Link><Link href="/" className="planner-home"><ArrowLeft size={15} /><span>Back to the island</span></Link></header>
     <main id="main">
       {storageNote && <div className="storage-notice" role="status">{storageNote}</div>}
       {mode === 'sample' && screen !== 'result' && <div className="sample-banner"><span>Sample mode</span> Explore the planner with an illustrative itinerary. Live research is not connected.</div>}
-      {!ready ? <div className="planner-initial" role="status">Getting your journey ready…</div> : screen === 'result' && itinerary ? <ItineraryView itinerary={itinerary} newTrip={newTrip} /> : screen === 'generating' ? <GenerationScreen mode={mode} stages={stages} /> : <>{failure && <div className="planner-failure" role="alert"><strong>Let’s give that another look.</strong><p>{failure}</p>{mode === 'unavailable' && <button className="plan-text" onClick={() => window.location.reload()}>Check connection <ArrowUpRight size={16} /></button>}</div>}<PlanningForm p={p} step={step} furthest={furthest} editing={editing} errors={errors} update={update} go={go} next={next} generate={generate} mode={mode} saved={!!itinerary} resume={() => { setScreen('result'); focusHeading(); }} /></>}
+      {!ready ? <div className="planner-initial" role="status">Getting your journey ready…</div> : screen === 'result' && itinerary ? <>{historyStatus === 'saved' && <p className="history-notice" role="status">Saved to your account. <Link href="/account">View trip history →</Link></p>}{historyStatus === 'failed' && <p className="history-notice history-error" role="alert">Your itinerary is ready, but it could not be saved to your account. Download a copy before leaving this page.</p>}<ItineraryView itinerary={itinerary} newTrip={newTrip} /></> : screen === 'generating' ? <GenerationScreen mode={mode} stages={stages} /> : <>{failure && <div className="planner-failure" role="alert"><strong>Let’s give that another look.</strong><p>{failure}</p>{mode === 'unavailable' && <button className="plan-text" onClick={() => window.location.reload()}>Check connection <ArrowUpRight size={16} /></button>}</div>}<PlanningForm p={p} step={step} furthest={furthest} editing={editing} errors={errors} update={update} go={go} next={next} generate={generate} mode={mode} saved={!!itinerary} resume={() => { setScreen('result'); focusHeading(); }} /></>}
     </main><footer className="planner-footer"><span>hello<span>srilanka</span>.</span><p>A little island. An endless feeling.</p></footer>
   </div>;
 }

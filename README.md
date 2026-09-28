@@ -41,7 +41,7 @@ Every existing planning CTA opens `/plan`:
 - Accessible labelled controls, visible progress, review edit links, refresh recovery and temporary session persistence. Optional account creation uses Supabase Auth.
 - Full-width expandable itinerary cards with flexible periods, connected transfers, overnight suggestions, provider/source links, qualified costs, assumptions and caveats. **No maps**, per the MVP scope. No itinerary editing, chat, sharing or booking management.
 - Whole-trip and selected-day PNG preview, optional costs, 1440 × 1920 output, pagination and individual downloads. The dedicated text layout avoids cross-origin image dependencies; fonts have a bounded system-font fallback.
-- In-progress preferences are kept in this tab's session storage for up to two hours and removed when the itinerary is ready. Account sign-in currently does not create permanent trip history.
+- In-progress preferences are kept in this tab's session storage for up to two hours and removed when the itinerary is ready. Completed itineraries created while signed in are saved to private Supabase trip history after the itinerary-history migration is applied.
 
 ### Live generation or sample mode
 

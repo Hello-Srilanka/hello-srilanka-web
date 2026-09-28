@@ -7,6 +7,8 @@ import { finalize } from '@/lib/planner/validation';
 import { sampleDraft } from '@/lib/planner/sample';
 import { type AiCallMetrics } from '@/lib/planner/provider';
 import { generateLiveItinerary } from '@/lib/planner/generate';
+import { createClient } from '@/lib/supabase/server';
+import { supabaseConfigured } from '@/lib/supabase/config';
 
 export const runtime = 'nodejs';
 export const maxDuration = 240;
@@ -47,6 +49,14 @@ export async function POST(request: Request) {
   } catch (e) { return Response.json({ error: e instanceof Error ? e.message : 'Invalid request.' }, { status: 400 }); }
   const mode = sampleMode() ? 'sample' : 'live';
   const hash = createHash('sha256').update(JSON.stringify(p) + mode).digest('hex');
+  let account: { client: Awaited<ReturnType<typeof createClient>>; userId: string } | null = null;
+  if (supabaseConfigured()) {
+    try {
+      const client = await createClient();
+      const { data } = await client.auth.getClaims();
+      if (data?.claims?.sub) account = { client, userId: data.claims.sub };
+    } catch { /* Guest planning remains available if account lookup fails. */ }
+  }
   await mkdir(directory, { recursive: true, mode: 0o700 });
   // Completed responses and leases survive process restarts. Remove expired records.
   for (const name of await readdir(directory)) {
@@ -118,7 +128,27 @@ export async function POST(request: Request) {
           if (latest) { if (latest.stage !== job.stage) send({ stage: latest.stage }); job = latest; }
         }
       }
-      if (job.result) send({ result: job.result });
+      if (job.result) {
+        let history: 'guest' | 'saved' | 'failed' = 'guest';
+        if (account) {
+          try {
+            const { error } = await account.client.from('itinerary_history').upsert({
+              user_id: account.userId,
+              id: job.result.id,
+              title: job.result.title.trim().slice(0, 200),
+              mode: job.result.mode,
+              generated_at: job.result.generatedAt,
+              itinerary: job.result,
+            }, { onConflict: 'user_id,id' }).abortSignal(AbortSignal.timeout(10000));
+            history = error ? 'failed' : 'saved';
+            if (error) console.error('Could not save itinerary history:', error.code);
+          } catch (error) {
+            history = 'failed';
+            console.error('Could not save itinerary history:', error);
+          }
+        }
+        send({ result: job.result, history });
+      }
       else send({ error: job.error || 'This request stopped before it finished. You can safely retry now.', terminal: true });
       if (connected) { try { controller.close(); } catch { /* Client disconnected. */ } }
     },

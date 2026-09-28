@@ -248,3 +248,4 @@
   .discovery-sidebar{display:none}.discovery-layout{grid-template-columns:1fr}.discovery-content{max-width:900px}
 }
 .result-ai{background:#e4ece2;border-color:#bccdb8}
+.history-notice{margin:18px auto 0;width:min(92%,1180px);padding:12px 18px;background:#e9f0e8;border:1px solid #bfd0ba;color:var(--jungle);font-size:13px;line-height:1.5}.history-notice a{text-decoration:underline;text-underline-offset:3px}.history-error{background:#fff0e9;border-color:#e7bca9;color:#963719}

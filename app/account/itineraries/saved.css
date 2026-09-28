@@ -1,0 +1,3 @@
+.saved-itinerary-page main{padding-top:110px}
+.saved-itinerary-back{width:min(92%,1180px);margin:0 auto}
+.saved-itinerary-back a{display:inline-flex;align-items:center;min-height:44px;font-size:13px;color:var(--jungle);text-decoration:underline;text-underline-offset:4px}
