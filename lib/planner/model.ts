@@ -1,3 +1,5 @@
+import { nationalityProfile, supportedNationalities } from './nationality';
+
 export const interests = [
   ['Nature', 'nuwara-tea-country', 'Green hills & wide-open spaces'],
   ['Beaches', 'arugam-fishing-boats', 'Salt air & slower days'],
@@ -18,19 +20,63 @@ export type Preferences = {
   undecided: boolean; arrivalDate: string; departureDate: string; duration: number; month: string;
   arrival: string; departure: string; arrivalTime: string; departureTime: string;
   adults: number; children: number; ages: string[]; interests: string[];
+  nationality: string; otherNationality: string; useNationalitySuggestions: boolean;
   pace: 'Relaxed' | 'Balanced' | 'Packed'; budget: string; currency: string;
-  budgetBasis: 'group' | 'person'; flightsIncluded: boolean; transport: string; accommodation: string;
+  transport: string; accommodation: string;
   mustVisit: string; accessibility: string;
 };
 export const defaults: Preferences = {
   undecided: false, arrivalDate: '', departureDate: '', duration: 7, month: 'Any month',
   arrival: 'Bandaranaike International Airport (CMB)', departure: 'Bandaranaike International Airport (CMB)',
   arrivalTime: '', departureTime: '', adults: 2, children: 0, ages: [], interests: [],
-  pace: 'Balanced', budget: '', currency: 'USD', budgetBasis: 'group', flightsIncluded: false,
+  nationality: '', otherNationality: '', useNationalitySuggestions: false,
+  pace: 'Balanced', budget: '', currency: 'USD',
   transport: 'Help me decide', accommodation: 'Help me decide', mustVisit: '', accessibility: '',
 };
 export function dayCount(p: Preferences) {
   return p.undecided ? p.duration : Math.round((Date.parse(p.departureDate) - Date.parse(p.arrivalDate)) / 86400000) + 1;
+}
+export function dayTimeBudgets(p: Preferences) {
+  const count = dayCount(p);
+  const windows = [[0, 12 * 60], [12 * 60, 18 * 60], [18 * 60, 24 * 60]];
+  return Array.from({ length: count }, (_, index) => {
+    const earlyDeparture = index === count - 1 && Boolean(p.departureTime && p.departureTime < '11:00');
+    const arrival = index === 0 && p.arrivalTime
+      ? Number(p.arrivalTime.slice(0, 2)) * 60 + Number(p.arrivalTime.slice(3)) + 90
+      : earlyDeparture ? 0 : 8 * 60;
+    const departure = index === count - 1 && p.departureTime
+      ? Number(p.departureTime.slice(0, 2)) * 60 + Number(p.departureTime.slice(3)) - 180
+      : 22 * 60;
+    const periods = windows.map(([start, end]) => Math.max(0, Math.min(end, departure) - Math.max(start, arrival)));
+    return {
+      day: index + 1,
+      morningMinutes: periods[0],
+      afternoonMinutes: periods[1],
+      eveningMinutes: periods[2],
+      totalMinutes: Math.max(0, departure - arrival),
+    };
+  });
+}
+export function normalizePreferences(p: Preferences): Preferences {
+  if (p.undecided) return { ...p, arrivalDate: '', departureDate: '' };
+  const calculatedDuration = dayCount(p);
+  return { ...p, duration: Number.isInteger(calculatedDuration) ? calculatedDuration : p.duration, month: 'Any month' };
+}
+export function itineraryRequestPreferences(p: Preferences) {
+  const { undecided, arrivalDate, departureDate, duration, month, nationality, otherNationality, useNationalitySuggestions, ...shared } = p;
+  const profile = useNationalitySuggestions ? nationalityProfile(nationality) : null;
+  return {
+    ...shared,
+    ...(profile ? { nationality: nationality === 'Other' ? otherNationality.trim() : nationality } : {}),
+    nationalitySuggestions: profile ? {
+      enabled: true,
+      suggestedInterests: profile.interests,
+      activityIdeas: profile.ideas,
+    } : { enabled: false },
+    datePlan: undecided
+      ? { mode: 'flexible' as const, durationDays: duration, preferredMonth: month }
+      : { mode: 'fixed' as const, arrivalDate, departureDate, dayCount: dayCount(p) },
+  };
 }
 export function dayDate(p: Preferences, index: number) {
   if (p.undecided) return null;
@@ -44,7 +90,7 @@ export function tripDates(p: Preferences) {
 }
 export function travellers(p: Preferences) { return `${p.adults} adult${p.adults === 1 ? '' : 's'}${p.children ? ` · ${p.children} child${p.children === 1 ? '' : 'ren'}` : ''}`; }
 export function money(amount: number, currency: string) { return new Intl.NumberFormat('en-GB', { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount); }
-export function groupBudget(p: Preferences) { return p.budget ? Number(p.budget) * (p.budgetBasis === 'person' ? p.adults + p.children : 1) : null; }
+export function groupBudget(p: Preferences) { return p.budget ? Number(p.budget) : null; }
 export type Errors = Record<string, string>;
 export function validatePreferences(p: Preferences, step?: number): Errors {
   const e: Errors = {};
@@ -65,6 +111,11 @@ export function validatePreferences(p: Preferences, step?: number): Errors {
     if (!Number.isInteger(p.children) || p.children < 0 || p.children > 8) e.children = 'Choose 0–8 children.';
     if (p.ages.length !== p.children || p.ages.some(a => !/^\d{1,2}$/.test(a) || Number(a) > 17)) e.ages = 'Enter each child’s age from 0 to 17.';
   }
+  if (step === undefined || step === 0) {
+    if (p.nationality && p.nationality !== 'Other' && p.nationality !== 'Prefer not to say' && !supportedNationalities.some(n => n.name === p.nationality)) e.nationality = 'Choose a nationality from the list.';
+    if (p.nationality === 'Other' && (!p.otherNationality.trim() || p.otherNationality.length > 80)) e.otherNationality = 'Search and choose a country.';
+    if (p.useNationalitySuggestions && !nationalityProfile(p.nationality)) e.useNationalitySuggestions = 'Choose one of the five supported nationalities to use these suggestions.';
+  }
   if (step === undefined || step === 2) {
     if (!p.interests.length || p.interests.some(i => !interests.some(([name]) => name === i)) || new Set(p.interests).size !== p.interests.length) e.interests = 'Choose at least one interest.';
   }
@@ -72,7 +123,6 @@ export function validatePreferences(p: Preferences, step?: number): Errors {
     if (!['Relaxed', 'Balanced', 'Packed'].includes(p.pace)) e.pace = 'Choose your pace.';
     if (p.budget && (!/^\d+(\.\d{1,2})?$/.test(p.budget) || Number(p.budget) <= 0 || Number(p.budget) > 100000000)) e.budget = 'Enter a positive amount, or leave blank for help deciding.';
     if (!(currencies as readonly string[]).includes(p.currency)) e.currency = 'Choose a supported currency.';
-    if (!['group', 'person'].includes(p.budgetBasis)) e.budgetBasis = 'Choose who the budget covers.';
     if (!(transports as readonly string[]).includes(p.transport)) e.transport = 'Choose a transport preference.';
     if (!(stays as readonly string[]).includes(p.accommodation)) e.accommodation = 'Choose a stay preference.';
     if (p.mustVisit.length > 600) e.mustVisit = 'Use up to 600 characters.';
@@ -82,13 +132,18 @@ export function validatePreferences(p: Preferences, step?: number): Errors {
 }
 export function readPreferences(value: unknown): Preferences {
   if (!value || typeof value !== 'object') throw new Error('Your preferences could not be read. Please review the form.');
-  const p = value as Record<string, unknown>;
+  const p = { ...value } as Record<string, unknown>;
   for (const [key, base] of Object.entries(defaults)) {
+    if (p[key] === undefined && ['nationality', 'otherNationality', 'useNationalitySuggestions'].includes(key)) p[key] = base;
     if (Array.isArray(base)) {
       if (!Array.isArray(p[key]) || (p[key] as unknown[]).some(v => typeof v !== 'string') || (p[key] as unknown[]).length > 20) throw new Error('Invalid preference format.');
     } else if (typeof p[key] !== typeof base) throw new Error('Invalid preference format.');
   }
-  return Object.fromEntries(Object.keys(defaults).map(k => [k, p[k]])) as Preferences;
+  const current = Object.fromEntries(Object.keys(defaults).map(k => [k, p[k]])) as Preferences;
+  if (p.budgetBasis === 'person' && /^\d+(\.\d{1,2})?$/.test(current.budget) && Number(current.budget) > 0 && Number.isInteger(current.adults) && Number.isInteger(current.children)) {
+    current.budget = String(Math.round(Number(current.budget) * (current.adults + current.children) * 100) / 100);
+  }
+  return normalizePreferences(current);
 }
 export type Source = { id: string; title: string; url: string; retrievedAt: string | null };
 export type Cost = { amount: number | null; basis: string; sourceIds: string[] };

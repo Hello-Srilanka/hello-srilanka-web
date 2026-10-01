@@ -32,16 +32,16 @@ The build uses Next.js’s Webpack compiler. Serve media with correct MIME types
 
 Every existing planning CTA opens `/plan`:
 
-**Your moments → your rhythm → your time → your budget → your comforts → your journey → generation → read-only itinerary → PNG export.**
+**Your interests → your pace → your trip → review → generation → read-only itinerary → PNG export.**
 
 - Dates or 1–21 relative days; arrival/departure locations and optional local flight times; adults, children and conditional ages.
 - Discovery starts with six photographic experience cards, with four more available to explore. Selections update a travel postcard and preference summary. Three pace choices show illustrative morning/midday/evening examples.
-- Dates and traveller counters come after discovery. Flight details are expandable; children’s ages appear only when relevant. Budget and comforts have separate chapters, including photographic stay preferences, transport choices and optional personal notes.
+- Dates and traveller counters come after interests and pace. Children’s ages appear only when relevant; walking, dietary and access needs stay visible on the trip screen. Review offers an optional “Personalise further” panel for a total group budget, hotel and transport preferences, and must-visits. The budget covers time in Sri Lanka, excluding international flights.
 - Review opens with a personalised photo brief. Edit links return directly to review after validating the edited chapter. Existing device-local drafts migrate to the new chapter order without discarding their answers or completed itinerary.
-- Accessible labelled controls, visible progress, review edit links, refresh recovery and local persistence. No account creation.
+- Accessible labelled controls, visible progress, review edit links, refresh recovery and temporary session persistence. Optional account creation uses Supabase Auth.
 - Full-width expandable itinerary cards with flexible periods, connected transfers, overnight suggestions, provider/source links, qualified costs, assumptions and caveats. **No maps**, per the MVP scope. No itinerary editing, chat, sharing or booking management.
 - Whole-trip and selected-day PNG preview, optional costs, 1440 × 1920 output, pagination and individual downloads. The dedicated text layout avoids cross-origin image dependencies; fonts have a bounded system-font fallback.
-- Preferences and the latest completed itinerary are stored in browser localStorage (`hellosrilanka-planner-v1`). New trips retain access to the latest itinerary until a replacement completes. Storage failures are explained in the UI.
+- In-progress preferences are kept in this tab's session storage for up to two hours and removed when the itinerary is ready. Completed itineraries created while signed in are saved to private Supabase trip history after the itinerary-history migration is applied.
 
 ### Live generation or sample mode
 
@@ -49,14 +49,19 @@ Copy `.env.example` to `.env.local`, then configure:
 
 ```dotenv
 OPENAI_API_KEY=your_server_side_key
-OPENAI_MODEL=gpt-6-astra
+OPENAI_RESEARCH_MODEL=gpt-6-sol
+OPENAI_COMPOSE_MODEL=gpt-6-sol
 ```
 
 With no API key, or with `ITINERARY_MODE=sample`, the complete interface uses explicitly labelled illustrative results. Sample routes are presets; interests affect themes, but special requirements, prices, availability and route suitability are **not** live-verified. Sample mode never falls back silently after a live failure.
 
-Live generation uses the OpenAI Responses API in two actual processing stages: web-search research, then strict structured output. Model selection is configurable. The implementation follows the official [web-search guide](https://developers.openai.com/api/docs/guides/tools-web-search) and [Structured Outputs guide](https://developers.openai.com/api/docs/guides/structured-outputs), checked during implementation.
+Live generation uses the OpenAI Responses API with reviewed Supabase knowledge when configured. Web-search research fills gaps, followed by strict structured output. Model selection is configurable. The implementation follows the official [web-search guide](https://developers.openai.com/api/docs/guides/tools-web-search) and [Structured Outputs guide](https://developers.openai.com/api/docs/guides/structured-outputs).
 
-Research requests official tourism, attraction, transport and hotel sources; it preserves tool-returned URLs and server-recorded retrieval timestamps. The composition stage treats that content as untrusted data, uses only collected source IDs, and provides direct researched provider links. There is no hotel database or booking/availability service. Missing quotes remain unknown; unknown currency conversions cannot be assumed. Every cost is a subtotal for the whole group for one activity, leg or night in the requested currency.
+Research requests official tourism, attraction, transport and hotel sources; it preserves tool-returned URLs and server-recorded retrieval timestamps. The composition stage treats that content as untrusted data, uses only collected source IDs, and provides direct researched provider links. Supabase stores reviewed stay candidates, but there is no booking or live availability service. Missing quotes remain unknown; unknown currency conversions cannot be assumed. Every cost is a subtotal for the whole group for one activity, leg or night in the requested currency.
+
+### Accounts and maintained knowledge
+
+See [SUPABASE_SETUP.md](SUPABASE_SETUP.md) for environment variables, the SQL migration, email confirmation, and the one-time step to grant an account admin access. Sign-up, sign-in, sign-out and the protected `/admin` review page use Supabase Auth and Row Level Security. Every approved fact has a source, review date and expiry; unreviewed or expired facts do not enter itinerary generation. The catalogue starts empty until an admin adds and approves records.
 
 `lib/planner/validation.ts` verifies response shape, day count, arrival/departure connections, overnight continuity, duplicate activities, chronological periods, time budgets, flight windows, sourced journey estimates with buffers, source references and cost arithmetic. Major costs remain explicitly unknown; the server does not call a partial subtotal a complete budget. Conflicts are shown before returning a finished itinerary.
 
@@ -74,6 +79,7 @@ A basic per-process hourly limit is included. A public deployment should enforce
 - `lib/planner/discovery.ts`: chapter definitions, preference-to-story copy, chapter validation and legacy draft migration.
 - `lib/planner/`: types, preference validation, sample data, provider calls, itinerary validation and canvas layout.
 - `app/api/itinerary/route.ts`: server endpoint and request recovery.
+- `lib/knowledge/` and `app/admin/`: reviewed fact retrieval and admin editing.
 - `app/plan/planner.css`: scoped extension of the existing design tokens.
 
 ```sh

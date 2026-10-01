@@ -1,8 +1,8 @@
 import { dayCount, interests, validatePreferences, type Errors, type Preferences } from './model';
 
-export const discoverySteps = ['Your moments', 'Your rhythm', 'Your time', 'Your budget', 'Your comforts', 'Your journey'];
+export const discoverySteps = ['Nationality', 'Your interests', 'Your pace', 'Your trip', 'Review'];
 export const reviewStep = discoverySteps.length - 1;
-export const flowVersion = 2;
+export const flowVersion = 4;
 export const moments = [
   { name: 'Nature', title: 'Lose yourself in the green', note: 'Tea hills, trails & fresh air' },
   { name: 'Beaches', title: 'Let the sea set the pace', note: 'Bare feet & salt air' },
@@ -20,23 +20,21 @@ export const rhythms = [
   { value: 'Balanced', title: 'A little of everything', note: 'Discover a little. Drift a little.', beats: ['A morning discovery', 'Lunch with a local flavour', 'A little sunset wandering'], mood: 'A little discovery. A little daydream.' },
   { value: 'Packed', title: 'Keep exploring', note: 'Early starts. Full hearts.', beats: ['Out with the early light', 'A few different experiences', 'An evening to remember'], mood: 'Days full of discovery.' },
 ] as const;
-const budgetKeys = ['budget', 'currency', 'budgetBasis'];
-const comfortKeys = ['transport', 'accommodation', 'mustVisit', 'accessibility'];
 export function discoveryErrors(p: Preferences, step: number): Errors {
-  if (step === 0) return validatePreferences(p, 2);
-  if (step === 2) return validatePreferences(p, 1);
-  const errors = validatePreferences(p, 3);
-  if (step === 1) return Object.fromEntries(Object.entries(errors).filter(([k]) => k === 'pace'));
-  if (step === 3) return Object.fromEntries(Object.entries(errors).filter(([k]) => budgetKeys.includes(k)));
-  if (step === 4) return Object.fromEntries(Object.entries(errors).filter(([k]) => comfortKeys.includes(k)));
+  if (step === 0) return validatePreferences(p, 0);
+  if (step === 1) return validatePreferences(p, 2);
+  if (step === 2) return Object.fromEntries(Object.entries(validatePreferences(p, 3)).filter(([k]) => k === 'pace'));
+  if (step === 3) return { ...validatePreferences(p, 1), ...Object.fromEntries(Object.entries(validatePreferences(p, 3)).filter(([k]) => k === 'accessibility')) };
   return validatePreferences(p);
 }
 export function restoreDiscoveryStep(step: unknown, version: unknown) {
   if (!Number.isInteger(step)) return 0;
   const n = step as number;
   if (version === flowVersion) return Math.max(0, Math.min(reviewStep, n));
+  if (version === 3) return [1, 2, 3, reviewStep][n] ?? 0;
+  if (version === 2) return [1, 2, 3, reviewStep, reviewStep, reviewStep][n] ?? 0;
   // Previous flow: welcome, basics, interests, combined style, review.
-  return [0, 2, 0, 1, reviewStep][n] ?? 0;
+  return [1, 3, 1, 2, reviewStep][n] ?? 0;
 }
 const feeling: Record<string, string> = {
   Nature: 'Green escapes', Beaches: 'Salt-air days', Wildlife: 'Wild encounters', Adventure: 'A little adventure',

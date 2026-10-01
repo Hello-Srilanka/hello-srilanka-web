@@ -1,4 +1,5 @@
 import { dayCount, type Preferences, type Draft, type Item, unknownCost } from './model';
+import { nationalityProfile } from './nationality';
 
 export function sampleDraft(p: Preferences): Draft {
   const n = dayCount(p);
@@ -15,11 +16,15 @@ export function sampleDraft(p: Preferences): Draft {
     Wellness: ['Room to reset', 'A quiet morning, a slower breakfast and time to recharge.'],
     'Scenic journeys': ['Take the scenic way', 'Leave space to enjoy the changing scenery; any rail service or reservation needs confirmation.'],
   };
+  const profile = p.useNationalitySuggestions ? nationalityProfile(p.nationality) : null;
+  const sampleInterests: string[] = profile
+    ? [...p.interests, ...profile.interests.filter(interest => !p.interests.includes(interest))]
+    : p.interests;
   let previous = p.arrival;
   return {
     title: 'A little island. Your own story.',
     summary: 'An illustrative Sri Lanka journey to try the planner. This sample follows a preset route and is not live research or a confirmed travel plan.',
-    assumptions: ['Sample route only; interests influence the suggested themes.', 'All activities are flexible ideas. Transport, accommodation, access and seasonal suitability need research.', `Your preference: ${p.transport.toLowerCase()} and ${p.accommodation.toLowerCase()}. Specific providers are not selected in sample mode.`],
+    assumptions: ['Sample route only; interests influence the suggested themes.', ...(profile ? [`You opted to include broad activity ideas for visitors from ${p.nationality} alongside your interests.`] : []), 'All activities are flexible ideas. Transport, accommodation, access and seasonal suitability need research.', `Your preference: ${p.transport.toLowerCase()} and ${p.accommodation.toLowerCase()}. Specific providers are not selected in sample mode.`],
     caveats: ['Sample mode does not verify must-visit places, accessibility needs or child suitability. These preferences are retained for live generation.', 'No prices, availability or journey estimates have been researched. Your budget is a target, not an estimated total.', 'Confirm all transfers and allow adequate time before committing to flights or stays.'],
     conflicts: [],
     days: Array.from({ length: n }, (_, i) => {
@@ -28,7 +33,7 @@ export function sampleDraft(p: Preferences): Draft {
       const start = previous;
       const items: Item[] = [];
       if (start !== destination) items.push({ kind: 'transport', title: `On to ${destination}`, description: `Illustrative transfer using your ${p.transport.toLowerCase()} preference. Route and duration need confirmation.`, period: 'Morning', from: start, to: destination, durationMinutes: null, bufferMinutes: 0, sourceIds: [], cost: unknownCost() });
-      const interest = p.interests[i % p.interests.length] || 'Local life';
+      const interest = sampleInterests[i % sampleInterests.length] || 'Local life';
       const [title, description] = themes[interest] || themes['Local life'];
       items.push({ kind: 'activity', title: `${title} · chapter ${i + 1}`, description: last ? 'Keep this day light for departure. Any outing depends on your confirmed transfer and flight times.' : description, period: items.length ? 'Afternoon' : 'Morning', from: destination, to: destination, durationMinutes: last ? 30 : p.pace === 'Relaxed' ? 60 : 90, bufferMinutes: 0, sourceIds: [], cost: unknownCost() });
       if (last && destination !== p.departure) items.push({ kind: 'transport', title: 'Your onward journey', description: 'Arrange your departure transfer. Confirm the journey time and airport arrival requirements with your provider.', period: 'Afternoon', from: destination, to: p.departure, durationMinutes: null, bufferMinutes: 0, sourceIds: [], cost: unknownCost() });

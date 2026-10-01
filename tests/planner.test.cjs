@@ -5,23 +5,76 @@ const fs = require('node:fs');
 const ts = require('typescript');
 // Compile project TypeScript in-memory; no runtime package needed for these tests.
 require.extensions['.ts'] = (mod, filename) => mod._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, filename);
-const { defaults, dayCount, dayDate, validatePreferences, readPreferences, groupBudget } = require('../lib/planner/model.ts');
+const { defaults, dayCount, dayDate, validatePreferences, readPreferences, groupBudget, itineraryRequestPreferences } = require('../lib/planner/model.ts');
 const { sampleDraft } = require('../lib/planner/sample.ts');
 const { finalize } = require('../lib/planner/validation.ts');
 const p = { ...defaults, undecided: true, interests: ['Nature', 'Food'] };
 const source = { id: 's1', title: 'Provider', url: 'https://example.com/travel', retrievedAt: new Date().toISOString() };
 const finish = (draft, prefs = p, sources = [], mode = 'sample') => finalize(draft, prefs, sources, 'test-id', mode);
-test('validates dates, children, bounds and per-person budget', () => {
+test('validates dates, children, bounds and total group budget', () => {
   assert.deepEqual(validatePreferences(p), {});
   assert.equal(dayCount({ ...p, undecided: false, arrivalDate: '2027-01-01', departureDate: '2027-01-07' }), 7);
   assert.equal(dayDate(p, 0), null);
-  assert.equal(groupBudget({ ...p, budget: '100', budgetBasis: 'person', children: 1 }), 300);
+  assert.equal(groupBudget({ ...p, budget: '300', children: 1 }), 300);
   assert.ok(validatePreferences({ ...p, children: 1 }).ages);
   assert.ok(validatePreferences({ ...p, children: 1, ages: ['18'] }).ages);
   assert.ok(validatePreferences({ ...p, duration: 22 }).duration);
   assert.ok(validatePreferences({ ...p, undecided: false, arrivalDate: '2027-02-30', departureDate: '2027-03-05' }).arrivalDate);
   assert.ok(validatePreferences({ ...p, budget: 'Infinity' }).budget);
   assert.throws(() => readPreferences({ ...p, adults: '2' }));
+});
+test('restores old per-person budgets as the same total group target', () => {
+  const restored = readPreferences({ ...p, budget: '100.25', budgetBasis: 'person', adults: 2, children: 1, ages: ['8'] });
+  assert.equal(restored.budget, '300.75');
+  assert.equal(groupBudget(restored), 300.75);
+  assert.equal(Object.hasOwn(restored, 'budgetBasis'), false);
+});
+test('normalizes fixed and flexible date inputs before generation', () => {
+  const fixed = readPreferences({ ...p, undecided: false, arrivalDate: '2026-12-31', departureDate: '2027-01-15', duration: 7, month: 'March' });
+  assert.equal(dayCount(fixed), 16);
+  assert.equal(fixed.duration, 16);
+  assert.equal(fixed.month, 'Any month');
+  const fixedRequest = itineraryRequestPreferences(fixed);
+  assert.deepEqual(fixedRequest.datePlan, { mode: 'fixed', arrivalDate: '2026-12-31', departureDate: '2027-01-15', dayCount: 16 });
+  assert.equal(Object.hasOwn(fixedRequest, 'duration'), false);
+  assert.equal(Object.hasOwn(fixedRequest, 'month'), false);
+  const flexible = readPreferences({ ...p, undecided: true, arrivalDate: '2026-12-31', departureDate: '2027-01-15', duration: 7 });
+  assert.equal(flexible.arrivalDate, '');
+  assert.equal(flexible.departureDate, '');
+});
+test('nationality suggestions require an explicit opt-in and a supported profile', () => {
+  const notOptedIn = { ...p, nationality: 'India' };
+  const plainRequest = itineraryRequestPreferences(notOptedIn);
+  assert.equal(plainRequest.nationalitySuggestions.enabled, false);
+  assert.equal(Object.hasOwn(plainRequest, 'nationality'), false);
+  const optedIn = { ...notOptedIn, useNationalitySuggestions: true, interests: ['Food', 'Nature'] };
+  const request = itineraryRequestPreferences(optedIn);
+  assert.equal(request.nationality, 'India');
+  assert.equal(request.nationalitySuggestions.enabled, true);
+  assert.ok(request.nationalitySuggestions.suggestedInterests.includes('Food'));
+  assert.equal(sampleDraft(optedIn).days[0].items.at(-1).title.startsWith('A taste of Sri Lanka'), true);
+  const nationalityIdeas = sampleDraft({ ...optedIn, interests: ['Nature'] });
+  assert.match(nationalityIdeas.days[1].items.at(-1).title, /Stories of the island/);
+  assert.ok(validatePreferences({ ...p, nationality: 'Other', otherNationality: 'Canadian', useNationalitySuggestions: true }).useNationalitySuggestions);
+  assert.ok(validatePreferences({ ...p, nationality: 'Other' }).otherNationality);
+  const previousDraft = { ...p }; delete previousDraft.nationality; delete previousDraft.otherNationality; delete previousDraft.useNationalitySuggestions;
+  const restored = readPreferences(previousDraft);
+  assert.equal(restored.useNationalitySuggestions, false);
+  assert.equal(restored.nationality, '');
+});
+test('other country choices include searchable countries and flags', () => {
+  const { countryFlag, otherCountries } = require('../lib/planner/countries.ts');
+  assert.equal(countryFlag('IN'), '🇮🇳');
+  assert.ok(otherCountries.some(country => country.name === 'Sri Lanka' && country.flag === '🇱🇰'));
+  assert.ok(otherCountries.some(country => country.name === 'Canada'));
+  assert.equal(otherCountries.some(country => country.code === 'IN'), false);
+  assert.equal(otherCountries.length > 200, true);
+});
+test('ignores the retired international-flights budget choice in saved preferences', () => {
+  const restored = readPreferences({ ...p, flightsIncluded: true });
+  assert.equal(Object.hasOwn(restored, 'flightsIncluded'), false);
+  assert.equal(Object.hasOwn(itineraryRequestPreferences(restored), 'flightsIncluded'), false);
+  assert.equal(finish(sampleDraft(restored), restored).unknownCosts.includes('International flights'), false);
 });
 test('sample supports every duration with continuous overnights and no fabricated prices', () => {
   for (let duration = 1; duration <= 21; duration++) {
@@ -75,28 +128,46 @@ test('flexible time windows respect departure and arrival, including an early de
 });
 test('provider uses web search, retains source timestamps and requests strict structured output', async () => {
   const { research, compose } = require('../lib/planner/provider.ts');
-  const original = global.fetch; const calls = [];
+  const original = global.fetch, originalInfo = console.info; const calls = [], recorded = [], logs = [];
+  console.info = line => logs.push(line);
   global.fetch = async (_url, options) => {
     const body = JSON.parse(options.body); calls.push(body);
     return Response.json(calls.length === 1 ? {
       status: 'completed', output: [
         { type: 'web_search_call', status: 'completed', action: { sources: [{ url: source.url, title: source.title }] } },
-        { type: 'message', content: [{ type: 'output_text', text: 'Research evidence', annotations: [{ type: 'url_citation', url: source.url, title: source.title }] }] },
-      ],
-    } : { status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(sampleDraft(p)) }] }] });
+        { type: 'message', content: [{ type: 'output_text', text: 'Research evidence', annotations: [{ type: 'url_citation', url: source.url, title: source.title, start_index: 0, end_index: 17 }] }] },
+      ], usage: { input_tokens: 1000, input_tokens_details: { cached_tokens: 100, cache_write_tokens: 200 }, output_tokens: 500, total_tokens: 1500 },
+    } : { status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(sampleDraft(p)) }] }], usage: { input_tokens: 2000, input_tokens_details: { cached_tokens: 0, cache_write_tokens: 0 }, output_tokens: 1000, total_tokens: 3000 } });
   };
   try {
-    const evidence = await research(p, AbortSignal.timeout(1000));
+    const evidence = await research(p, AbortSignal.timeout(1000), { requestId: 'safe-test-id', record: value => recorded.push(value) });
     assert.equal(calls[0].tools[0].type, 'web_search');
     assert.equal(calls[0].tool_choice, 'required');
     assert.equal(calls[0].store, false);
+    assert.equal(calls[0].model, 'gpt-6-sol');
+    assert.equal(calls[0].reasoning.effort, 'low');
+    assert.match(calls[0].input, /"datePlan":\{"mode":"flexible","durationDays":7/);
+    assert.doesNotMatch(calls[0].input, /"arrivalDate"|"departureDate"/);
+    assert.match(calls[0].input, /budget covers Sri Lanka trip costs only/);
     assert.equal(evidence.sources.length, 1);
+    assert.match(evidence.text, /\[s1\]/);
     assert.ok(Date.parse(evidence.sources[0].retrievedAt));
+    assert.equal(recorded[0].webSearchCalls, 1);
+    assert.ok(Math.abs(recorded[0].estimatedCostUsd - 0.01692) < 1e-9);
+    assert.match(logs[0], /^\[AI usage\] request_id=safe-test-id stage=research model=gpt-6-sol .*estimated_cost_usd=0\.016920 .*time_seconds=/);
     await compose(p, evidence, AbortSignal.timeout(1000));
     assert.equal(calls[1].text.format.strict, true);
     assert.equal(calls[1].text.format.type, 'json_schema');
+    assert.equal(calls[1].model, 'gpt-6-sol');
+    assert.equal(calls[1].reasoning.effort, 'medium');
+    assert.equal(JSON.parse(calls[1].input).preferences.datePlan.durationDays, 7);
+    assert.equal(Object.hasOwn(JSON.parse(calls[1].input).preferences, 'duration'), false);
     assert.match(calls[1].instructions, /untrusted data/);
-  } finally { global.fetch = original; }
+    assert.match(calls[1].instructions, /budget excludes international flights/);
+    await compose(p, evidence, AbortSignal.timeout(1000), { draft: sampleDraft(p), validationError: 'Day 2 does not connect.' });
+    assert.equal(JSON.parse(calls[2].input).repair.validationError, 'Day 2 does not connect.');
+    assert.match(calls[2].instructions, /Correct the previous draft/);
+  } finally { global.fetch = original; console.info = originalInfo; }
 });
 test('provider rejects failed searches, refusals, incomplete JSON and provider errors', async () => {
   const { research, compose } = require('../lib/planner/provider.ts');
@@ -114,17 +185,49 @@ test('provider rejects failed searches, refusals, incomplete JSON and provider e
     await assert.rejects(() => research(p, AbortSignal.timeout(1000)), /Timed out/);
   } finally { global.fetch = original; }
 });
+test('reviewed knowledge bypasses live search only when coverage is complete', async () => {
+  const { research } = require('../lib/planner/provider.ts');
+  const original = global.fetch;
+  global.fetch = async () => { throw new Error('An unnecessary web request was made.'); };
+  try {
+    const knowledge = { complete: true, text: 'A sourced attraction claim [k1]', sources: [{ ...source, id: 'k1' }] };
+    const evidence = await research(p, AbortSignal.timeout(1000), undefined, knowledge);
+    assert.equal(evidence.sources[0].id, 'k1');
+    assert.match(evidence.text, /single-base route/);
+  } finally { global.fetch = original; }
+});
 test('discovery validates only the current chapter and migrates previous drafts', () => {
   const { discoveryErrors, restoreDiscoveryStep, journeyStory } = require('../lib/planner/discovery.ts');
   const unfinished = { ...defaults, interests: ['Nature'], budget: '-50' };
-  assert.deepEqual(discoveryErrors(unfinished, 0), {}, 'Dates and budget do not block choosing moments');
-  assert.deepEqual(discoveryErrors(unfinished, 1), {}, 'Future budget errors do not block rhythm');
-  assert.ok(discoveryErrors(unfinished, 2).arrivalDate);
-  assert.ok(discoveryErrors(unfinished, 3).budget);
-  assert.deepEqual(discoveryErrors(unfinished, 4), {});
-  assert.ok(discoveryErrors(unfinished, 5).budget);
-  assert.equal(restoreDiscoveryStep(1, undefined), 2, 'Old basics becomes the time chapter');
-  assert.equal(restoreDiscoveryStep(4, undefined), 5, 'Old review remains review');
-  assert.equal(restoreDiscoveryStep(3, 2), 3, 'Current drafts keep their chapter');
+  assert.deepEqual(discoveryErrors(unfinished, 0), {}, 'Dates and budget do not block nationality');
+  assert.deepEqual(discoveryErrors(unfinished, 1), {}, 'Future budget errors do not block interests');
+  assert.deepEqual(discoveryErrors(unfinished, 2), {}, 'Future budget errors do not block pace');
+  assert.ok(discoveryErrors(unfinished, 3).arrivalDate);
+  assert.ok(discoveryErrors(unfinished, 4).budget);
+  assert.ok(discoveryErrors({ ...unfinished, undecided: true, accessibility: 'x'.repeat(601) }, 3).accessibility);
+  assert.ok(discoveryErrors({ ...unfinished, nationality: 'Other' }, 0).otherNationality);
+  assert.equal(restoreDiscoveryStep(1, undefined), 3, 'Old basics becomes the trip chapter');
+  assert.equal(restoreDiscoveryStep(4, undefined), 4, 'Old review remains review');
+  assert.equal(restoreDiscoveryStep(3, 2), 4, 'Previous budget chapter moves to review');
+  assert.equal(restoreDiscoveryStep(4, 2), 4, 'Previous comforts chapter moves to review');
+  assert.equal(restoreDiscoveryStep(2, 3), 3, 'Previous trip chapter keeps its content');
+  assert.equal(restoreDiscoveryStep(0, 4), 0, 'New drafts open at nationality');
   assert.equal(journeyStory(unfinished).duration, null, 'Undecided/invalid dates never become a made-up duration');
+});
+test('planner session drafts expire and never contain completed itineraries', () => {
+  const { plannerSessionTtl, serializePlannerSession, parsePlannerSession, isPristinePlannerSession } = require('../lib/planner/session.ts');
+  const now = 1_800_000_000_000;
+  const state = { preferences: p, step: 3, furthest: 3, editing: false, screen: 'form', requestId: null };
+  const raw = serializePlannerSession(state, now);
+  assert.equal(parsePlannerSession(raw, now + plannerSessionTtl - 1).step, 3);
+  const legacy = JSON.parse(raw);
+  legacy.flowVersion = 2;
+  legacy.step = 4;
+  legacy.preferences = { ...p, budget: '100', budgetBasis: 'person' };
+  const migrated = parsePlannerSession(JSON.stringify(legacy), now);
+  assert.equal(migrated.step, 4);
+  assert.equal(migrated.preferences.budget, '200');
+  assert.equal(parsePlannerSession(raw, now + plannerSessionTtl), null);
+  assert.equal(Object.hasOwn(JSON.parse(raw), 'itinerary'), false);
+  assert.equal(isPristinePlannerSession({ preferences: defaults, step: 0, furthest: 0, editing: false, screen: 'form', requestId: null }), true);
 });
