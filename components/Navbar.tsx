@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ArrowUpRight, Menu, X } from 'lucide-react';
 import { Brand } from './Brand';
-const links = [['Discover', '#experience'], ['Experiences', '#experiences'], ['Memories', '/memories'], ['How It Works', '#how-it-works'], ['About', '#about'], ['Account', '/account']];
+const links = [['Discover', '#experience'], ['Experiences', '#experiences'], ['Memories', '/memories'], ['Account', '/account']];
 export function Navbar({ memories = false, account = false }: { memories?: boolean; account?: boolean }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-const chapters = [['01', 'Arrive', 'arrive'], ['02', 'Experience', 'experience'], ['03', 'Find yours', 'find-yours'], ['04', 'Understand', 'understand'], ['05', 'Go', 'go']];
+const chapters = [['01', 'Arrive', 'arrive'], ['02', 'Experience', 'experience'], ['03', 'Find yours', 'find-yours']];
 export function ChapterIndicator() {
  const [active, setActive] = useState('01');
  useEffect(() => {
