@@ -45,7 +45,6 @@ export function journeyStory(p: Preferences) {
   const chosen = p.interests.slice(0, 3).map(i => feeling[i]).filter(Boolean);
   const rhythm = rhythms.find(r => r.value === p.pace) || rhythms[1];
   return { title: chosen.length ? chosen.join('. ') + '.' : 'A little island. A thousand possibilities.',
-    description: chosen.length ? rhythm.mood : 'Pick the moments you love. See your Sri Lanka take shape.',
     duration: Number.isInteger(dayCount(p)) && dayCount(p) > 0 && dayCount(p) <= 21 ? `${dayCount(p)} days` : null,
   };
 }

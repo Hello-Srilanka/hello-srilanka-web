@@ -79,7 +79,7 @@ export default function NationalityStep({ p, errors, update }: Props) {
       <p className="field-hint">Activity suggestions are available for the five countries shown on the planner.</p>
     </dialog>}
 
-    {profile && <div className="nationality-suggestion"><p>Popular ideas for visitors from {p.nationality}: {profile.ideas} <a href={profile.source} target="_blank" rel="noopener noreferrer">Research source</a></p><label className="check-row"><input id="useNationalitySuggestions" type="checkbox" checked={p.useNationalitySuggestions} onChange={event => update('useNationalitySuggestions', event.target.checked)} /> Include these ideas when planning my itinerary</label><small>Your selected interests, trip needs and dates still guide the plan. These are broad trends, not assumptions about you.</small>{errors.useNationalitySuggestions && <p className="field-error" id="useNationalitySuggestions-error">{errors.useNationalitySuggestions}</p>}</div>}
+    {profile && <div className="nationality-suggestion"><p>Popular ideas for visitors from {p.nationality}: {profile.ideas} </p><label className="check-row"><input id="useNationalitySuggestions" type="checkbox" checked={p.useNationalitySuggestions} onChange={event => update('useNationalitySuggestions', event.target.checked)} /> Include these ideas when planning my itinerary</label>{errors.useNationalitySuggestions && <p className="field-error" id="useNationalitySuggestions-error">{errors.useNationalitySuggestions}</p>}</div>}
 
     <label className="nationality-decline"><input type="radio" name="nationality" value="Prefer not to say" checked={p.nationality === 'Prefer not to say'} onChange={() => chooseNationality('Prefer not to say')} /> Prefer not to say</label>
   </div>;

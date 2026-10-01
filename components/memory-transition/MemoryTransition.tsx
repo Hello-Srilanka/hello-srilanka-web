@@ -50,7 +50,6 @@ export function MemoryTransition({ children }: { children: ReactNode }) {
         <Link href="/memories" prefetch={false}>Explore the memories <ArrowUpRight size={19} /></Link>
         <Link href="/memories" prefetch={false}>Share yours <Plus size={18} /></Link>
       </div>
-      <p className={styles.sampleNote}>Illustrative memories from the island.</p>
     </div>
   </div>;
 }
