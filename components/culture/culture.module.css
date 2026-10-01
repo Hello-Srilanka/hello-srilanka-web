@@ -1,0 +1,59 @@
+.experience{position:relative;background:var(--sand);--night:0;--local:1}
+.stage{position:relative;isolation:isolate}
+.night{position:absolute;inset:0;z-index:-2;background:#122c23;opacity:var(--night);pointer-events:none}
+.panel{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:5%;align-items:center;padding:55px calc(var(--gutter) + 60px) 55px var(--gutter);min-height:calc(100svh - 91px);scroll-margin-top:60px}
+.panel[data-theme=dark]{background:#122c23;color:var(--sand)}
+.copy{position:relative;z-index:2;min-width:0}
+.panel h3{font:400 clamp(50px,5.8vw,106px)/1.1 var(--display);letter-spacing:-.02em}
+.panel h3>span{display:block}
+.accent,.panel em{color:var(--cinnamon);font-style:normal}
+.panel[data-theme=dark] .accent{color:#daa676}
+.illustration{width:clamp(150px,18vw,280px);margin:20px 0 0 6%;}
+.illustration svg{width:100%;height:auto;display:block;overflow:visible}
+.artwork{position:relative;z-index:3;min-width:0;width:100%;max-width:530px;justify-self:center}
+.intro,.finale{display:flex}
+.intro h2{font:400 clamp(58px,7.5vw,144px)/1.12 var(--display);letter-spacing:-.023em;position:relative;z-index:2}
+.finale h3{font-size:clamp(58px,7.1vw,135px)}
+.cta{display:flex;align-items:center;justify-content:space-between;gap:50px;padding:20px 0;max-width:340px;min-height:64px;margin-top:35px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:20px}
+.cta:hover{color:var(--cinnamon)}
+.navigation{position:sticky;top:91px;z-index:6;display:flex;justify-content:center;gap:12px;padding:4px 20px;background:var(--sand);color:var(--ink);border-bottom:1px solid var(--line)}
+.navigation a{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}
+.navigation a i{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.35;transition:width .25s,opacity .25s}
+.navigation [aria-current]{color:var(--cinnamon)}
+.navigation [aria-current] i{width:24px;border-radius:4px;opacity:1}
+.stage>[data-culture-thread]{display:none}
+.stage::before{content:'';position:absolute;top:0;bottom:0;left:calc(var(--gutter) / 2);width:1px;background:var(--cinnamon);opacity:.5;z-index:3;pointer-events:none}
+.gallery{width:100%;position:relative}
+.photo{position:relative;aspect-ratio:4/5;overflow:hidden;background:color-mix(in srgb,var(--jungle) 9%,var(--sand))}
+.photo img{object-fit:cover;transition:opacity .45s ease}
+.photoActive{opacity:1;z-index:1}
+.photoInactive{opacity:0;z-index:0}
+.thumbnails{display:flex;gap:9px;margin-top:12px}
+.thumbnails button{position:relative;width:60px;height:52px;min-width:44px;min-height:44px;flex:1;max-width:78px;border:2px solid transparent;background:none;padding:0;opacity:.6;transition:opacity .2s,border-color .2s}
+.thumbnails button[aria-pressed=true]{opacity:1;border-color:var(--cinnamon)}
+.thumbnails button:hover,.thumbnails button:focus-visible{opacity:1}
+.thumbnails button img{object-fit:cover}
+.experience[data-motion=pinned] .stage{height:calc(100svh - 91px);min-height:509px;overflow:hidden;color:color-mix(in srgb,var(--sand) calc(var(--night) * 100%),var(--ink))}
+.experience[data-motion=pinned] .stage::before{display:none}
+.experience[data-motion=pinned] .panel{position:absolute;inset:0;min-height:0;background:transparent;z-index:2}
+.experience[data-motion=pinned] .panel:not(.intro){opacity:0;visibility:hidden}
+.experience[data-motion=pinned] .navigation{position:absolute;top:50%;right:24px;transform:translateY(-50%);padding:0;border:0;flex-direction:column;gap:5px;background:none;color:inherit}
+.experience[data-motion=pinned] .navigation [aria-current]{color:inherit}
+.experience[data-motion=pinned] .stage>[data-culture-thread]{display:block;position:absolute;left:49%;top:50%;width:42%;height:auto;transform:translateY(-50%);color:var(--cinnamon);opacity:.75;overflow:visible;z-index:1;pointer-events:none}
+.experience[data-motion=pinned] .artwork{max-width:min(100%,calc((100svh - 300px) * .8))}
+.experience[data-motion=pinned] .illustration{max-width:calc((100svh - 350px) * .58)}
+.experience[data-motion=pinned] .photo img{transform:scale(calc(1.035 - var(--local) * .035))}
+.experience[data-motion=pinned] .illustration svg{transform:translateY(calc((1 - var(--local)) * 12px))}
+.experience[data-motion=pinned] [data-oil-drop]{transform:translateY(calc(var(--local) * 65px))}
+.experience[data-motion=pinned] [data-dancer]{transform-origin:200px 200px;transform:rotate(calc((1 - var(--local)) * -5deg))}
+.experience[data-motion=pinned] [data-weave]{clip-path:inset(0 0 calc((1 - var(--local)) * 65%) 0)}
+:global(body):has(.experience[data-stage-active=true]) :global(.chapter-indicator){visibility:hidden;pointer-events:none}
+@media(min-width:768px) and (max-height:760px){.experience[data-motion=pinned] .panel h3{font-size:clamp(44px,5vw,74px)}.experience[data-motion=pinned] .illustration{margin-top:12px}.experience[data-motion=pinned] .intro h2,.experience[data-motion=pinned] .finale h3{font-size:clamp(62px,7vw,110px)}}
+@media(min-width:768px) and (max-width:1100px){.panel{gap:3%;padding-right:calc(var(--gutter) + 40px);grid-template-columns:1.1fr 1fr}.panel h3{font-size:clamp(43px,5.6vw,68px)}.experience[data-motion=pinned] .navigation{right:8px}.experience[data-motion=pinned] .stage>[data-culture-thread]{left:51%;width:39%}}
+@media(max-width:900px){.navigation{top:76px}.experience[data-motion=pinned] .stage{height:calc(100svh - 76px);min-height:524px}}
+@media(max-width:767px){.navigation{gap:6px;justify-content:space-between;padding:4px 20px}.panel{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:26px;min-height:calc(100svh - 76px);padding:48px 28px 48px 36px;scroll-margin-top:40px}.panel h3{font-size:clamp(44px,12vw,63px);line-height:1.07}.illustration{width:150px;margin:18px 0 -15px auto}.artwork{width:100%;max-width:370px;align-self:center}.intro{min-height:75svh}.intro h2{font-size:clamp(43px,11.5vw,78px);line-height:1.14}.finale{min-height:78svh}.finale h3{font-size:clamp(44px,11.6vw,66px)}.stage::before{left:16px}.cta{font-size:20px;gap:25px}.thumbnails{gap:7px}.thumbnails button{height:48px}}
+@media(prefers-reduced-motion:reduce){.navigation i,.photo img,.thumbnails button{transition:none}}
+.galleryFrame{position:relative}
+/* On phones, only the gallery stays in view while its photos pass through. */
+.gallery[data-gallery-motion=scroll] .galleryFrame{position:sticky;top:140px}
+@media(max-width:767px) and (min-height:650px){.gallery[data-gallery-motion=scroll] .photo{max-height:calc(100svh - 225px)}}
