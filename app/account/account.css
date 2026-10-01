@@ -5,6 +5,12 @@
 .profile-header .eyebrow{color:var(--cinnamon);font-size:10px}
 .profile-header h1{font-family:var(--display);font-size:clamp(42px,6vw,72px);font-weight:400;text-transform:uppercase;color:var(--jungle);line-height:1.1;margin:13px 0 10px}
 .profile-email{color:var(--muted);font-size:14px;overflow-wrap:anywhere}
+.profile-identity{display:flex;align-items:center;gap:19px;margin-top:25px;min-width:0}
+.profile-avatar{display:grid;place-items:center;flex:none;width:78px;height:78px;border:1px solid var(--line);border-radius:50%;overflow:hidden;background:var(--jungle);color:var(--sand);font-family:var(--display);font-size:29px;letter-spacing:.02em}
+.profile-avatar img{display:block;width:100%;height:100%;object-fit:cover}
+.profile-person{display:grid;gap:4px;min-width:0}
+.profile-name{color:var(--jungle);font-size:21px;font-weight:650;line-height:1.2;overflow-wrap:anywhere}
+.profile-joined{color:var(--muted);font-size:11px;letter-spacing:.02em}
 .profile-header button{border:0;background:none;color:var(--jungle);padding:10px 0;text-decoration:underline;text-underline-offset:4px;font-size:13px;white-space:nowrap}
 .profile-actions{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:38px}
 .profile-plan{display:inline-flex;align-items:center;justify-content:space-between;gap:28px;min-height:50px;padding:12px 20px;border-radius:3px;background:var(--jungle);color:var(--sand);font-size:13px;font-weight:650}
@@ -23,4 +29,4 @@
 .profile-history li a>span:last-child{font-size:20px;color:var(--jungle)}
 .profile-history-pages{display:flex;justify-content:space-between;gap:16px;margin-top:16px;font-size:12px}
 .profile-history-pages a{text-decoration:underline;text-underline-offset:3px}
-@media(max-width:600px){.profile-page{padding-top:128px}.profile-header{gap:15px}.profile-header h1{font-size:42px}.profile-actions{margin-top:30px}.profile-history{margin-top:44px}}
+@media(max-width:600px){.profile-page{padding-top:128px}.profile-header{gap:15px}.profile-header h1{font-size:42px}.profile-identity{gap:14px;margin-top:22px}.profile-avatar{width:62px;height:62px;font-size:24px}.profile-name{font-size:17px}.profile-email{font-size:12px}.profile-actions{margin-top:30px}.profile-history{margin-top:44px}}

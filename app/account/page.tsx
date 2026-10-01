@@ -5,26 +5,34 @@ import { createClient } from '@/lib/supabase/server';
 import { supabaseConfigured } from '@/lib/supabase/config';
 import { signOut } from '@/app/auth/actions';
 import { Navbar } from '@/components/Navbar';
+import { getAccountProfile } from '@/lib/auth/profile';
+import { ProfileAvatar } from './ProfileAvatar';
 import './account.css';
 
 export const metadata: Metadata = { title: 'Your account | HelloSriLanka', robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
-export default async function AccountPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+export default async function AccountPage({ searchParams }: { searchParams: Promise<{ page?: string; code?: string }> }) {
   if (!supabaseConfigured()) redirect('/login');
-  const requestedPage = Number((await searchParams).page || '1');
+  const params = await searchParams;
+  const requestedPage = Number(params.page || '1');
   const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 && requestedPage <= 10000 ? requestedPage : 1;
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims) redirect('/login');
-  const [{ data: admin }, { data: history, error: historyError }] = await Promise.all([
+  if (params.code) redirect('/account');
+  const [{ data: account }, { data: admin }, { data: history, error: historyError }] = await Promise.all([
+    supabase.auth.getUser(),
     supabase.from('admin_users').select('user_id').eq('user_id', claims.sub).maybeSingle(),
     supabase.from('itinerary_history').select('id,title,mode,generated_at').eq('user_id', claims.sub).order('generated_at', { ascending: false }).order('id', { ascending: false }).range((page - 1) * 20, page * 20),
   ]);
+  const profile = getAccountProfile(account.user?.id === claims.sub ? account.user : null, typeof claims.email === 'string' ? claims.email : '');
   const trips = history?.slice(0, 20) ?? [];
   return <><Navbar account /><main id="main" className="profile-page"><div className="profile-shell">
     <div className="profile-header">
-      <div><p className="eyebrow">YOUR SPACE</p><h1>Your account</h1><p className="profile-email">{typeof claims.email === 'string' ? claims.email : 'Signed in'}</p></div>
+      <div><p className="eyebrow">YOUR SPACE</p><h1>Your account</h1>
+        <div className="profile-identity"><ProfileAvatar src={profile.avatar} name={profile.name} /><div className="profile-person"><p className="profile-name">{profile.name}</p><p className="profile-email">{profile.email || 'Signed in'}</p>{profile.joined && <p className="profile-joined">Member since {profile.joined}</p>}</div></div>
+      </div>
       <form action={signOut}><button type="submit">Sign out</button></form>
     </div>
     <div className="profile-actions">
