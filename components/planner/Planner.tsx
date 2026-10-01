@@ -10,6 +10,7 @@ import ItineraryView from './ItineraryView';
 import GenerationScreen from './GenerationScreen';
 import { isPristinePlannerSession, legacyPlannerStorageKey, parsePlannerSession, plannerSessionKey, plannerSessionTtl, serializePlannerSession, type PlannerSession } from '@/lib/planner/session';
 type Screen = 'form' | 'generating' | 'result';
+type PlannerEvent = { mode?: string; stage?: string; error?: string; terminal?: boolean; result?: Itinerary; history?: string; status?: string };
 export default function Planner() {
   const [p, setP] = useState<Preferences>(defaults);
   const [step, setStep] = useState(0);
@@ -84,27 +85,82 @@ export default function Planner() {
     busy.current = true; setFailure(''); setScreen('generating'); setStages(['Connecting to your planner']); focusHeading();
     const id = requestId || crypto.randomUUID(); setRequestId(id);
     const controller = new AbortController(); activeController.current = controller;
-    const timeout = setTimeout(() => controller.abort(), 230000);
+    const timeout = setTimeout(() => controller.abort(), 12 * 60 * 1000);
     try {
       // Write the id synchronously before the network call so refresh reconnects to it.
       try { sessionStorage.setItem(plannerSessionKey, serializePlannerSession({ preferences: p, step: reviewStep, furthest: reviewStep, editing: false, screen: 'generating', requestId: id })); } catch { /* The visible storage warning is handled by the persistence effect. */ }
       const response = await fetch('/api/itinerary', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, preferences: p }), signal: controller.signal });
-      if (!response.ok) { const data = await response.json(); if (response.status === 400 || response.status === 409) setRequestId(null); throw new Error(data.error || 'Planning is unavailable. Please retry.'); }
-      if (!response.body) throw new Error('No response was received. Please retry to reconnect.');
-      const reader = response.body.getReader(), decoder = new TextDecoder(); let buffer = '', complete = false;
-      const consume = (line: string) => {
-        if (!line.trim()) return;
-        const event = JSON.parse(line);
+      if (!response.ok) { const data = await response.json().catch(() => ({})); if ([400, 409, 410].includes(response.status)) setRequestId(null); throw new Error(data.error || 'Planning is unavailable. Please retry.'); }
+      let complete = false;
+      const consume = (event: PlannerEvent) => {
         if (event.mode) setMode(event.mode);
-        if (event.stage) setStages(old => old.includes(event.stage) ? old : [...old, event.stage]);
+        if (event.stage) {
+          const stage = event.stage;
+          setStages(old => old.includes(stage) ? old : [...old, stage]);
+        }
         if (event.error) { if (event.terminal) setRequestId(null); throw new Error(event.error); }
         if (event.result) { try { sessionStorage.removeItem(plannerSessionKey); } catch { /* Storage may be unavailable. */ } setItinerary(event.result); setHistoryStatus(event.history === 'saved' ? 'saved' : event.history === 'failed' ? 'failed' : 'guest'); setScreen('result'); setRequestId(null); complete = true; focusHeading(); }
       };
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) { buffer += decoder.decode(); if (buffer.trim()) consume(buffer); break; }
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n'); buffer = lines.pop() || ''; lines.forEach(consume);
+      if (response.status === 202) {
+        const job = await response.json() as PlannerEvent & { dispatchToken: string };
+        consume(job);
+        let dispatchFailures = 0;
+        const dispatch = async () => {
+          // A lost 202 can still mean Netlify accepted the background task. Polling is authoritative.
+          try {
+            const started = await fetch('/.netlify/functions/generate-itinerary', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id, token: job.dispatchToken }), signal: controller.signal,
+            });
+            if (started.status === 404 || started.status === 405) throw new Error('The planner worker is not available on this deployment. Please try again later.');
+            if (!started.ok) throw new Error('The planner worker could not start.');
+            dispatchFailures = 0;
+          } catch (error) {
+            if (controller.signal.aborted) throw error;
+            if (error instanceof Error && error.message.includes('not available on this deployment')) throw error;
+            if (++dispatchFailures >= 3) throw new Error('The planner could not start. Your choices are saved in this tab; please retry.');
+            setStages(old => old.includes('Reconnecting to your planner') ? old : [...old, 'Reconnecting to your planner']);
+          }
+        };
+        let lastDispatch = Date.now();
+        if (job.status === 'queued') await dispatch();
+        let failures = 0;
+        while (!complete) {
+          await new Promise(resolve => setTimeout(resolve, 2500));
+          if (controller.signal.aborted) throw new DOMException('The connection timed out.', 'AbortError');
+          let event: PlannerEvent;
+          try {
+            const status = await fetch(`/api/itinerary?id=${encodeURIComponent(id)}`, { cache: 'no-store', signal: controller.signal });
+            if (status.status === 404 || status.status === 410) {
+              setRequestId(null);
+              const body = await status.json();
+              throw new Error(body.error || 'This planning request has expired. Start again from review.');
+            }
+            if (!status.ok) throw new TypeError('The planner status is temporarily unavailable.');
+            event = await status.json() as PlannerEvent;
+          } catch (error) {
+            if (controller.signal.aborted) throw error;
+            if (!(error instanceof TypeError)) throw error;
+            failures++;
+            if (failures > 5) throw new Error('The connection to your planner was lost. Your choices are saved in this tab; retry to reconnect.');
+            continue;
+          }
+          failures = 0;
+          consume(event);
+          if (!complete && event.status === 'queued' && Date.now() - lastDispatch > 15000) {
+            lastDispatch = Date.now();
+            await dispatch();
+          }
+        }
+      } else {
+        if (!response.body) throw new Error('No response was received. Please retry to reconnect.');
+        const reader = response.body.getReader(), decoder = new TextDecoder(); let buffer = '';
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) { buffer += decoder.decode(); if (buffer.trim()) consume(JSON.parse(buffer)); break; }
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n'); buffer = lines.pop() || ''; lines.filter(Boolean).forEach(line => consume(JSON.parse(line)));
+        }
       }
       if (!complete) throw new Error('The connection ended early. Retry to reconnect to the same request.');
     } catch (error) {

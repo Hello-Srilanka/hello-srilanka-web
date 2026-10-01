@@ -9,6 +9,7 @@ import { type AiCallMetrics } from '@/lib/planner/provider';
 import { generateLiveItinerary } from '@/lib/planner/generate';
 import { createClient } from '@/lib/supabase/server';
 import { supabaseConfigured } from '@/lib/supabase/config';
+import { asyncPlannerAvailable, createPlannerJob, getPlannerJob, plannerDispatchToken, plannerJobTtl, type PlannerJob } from '@/lib/planner/async-job';
 
 export const runtime = 'nodejs';
 export const maxDuration = 240;
@@ -27,7 +28,35 @@ async function save(id: string, job: Job) {
 async function getJob(id: string): Promise<Job | null> {
   try { return JSON.parse(await readFile(join(directory, `${id}.json`), 'utf8')); } catch { return null; }
 }
-export async function GET() { return Response.json({ mode: sampleMode() ? 'sample' : 'live' }, { headers: { 'Cache-Control': 'no-store' } }); }
+export async function GET(request: Request) {
+  const id = new URL(request.url).searchParams.get('id');
+  if (!id) return Response.json({ mode: sampleMode() ? 'sample' : 'live' }, { headers: { 'Cache-Control': 'no-store' } });
+  if (!idPattern.test(id) || !asyncPlannerAvailable()) return Response.json({ error: 'Invalid request ID.' }, { status: 400 });
+  let job: PlannerJob | null;
+  try { job = await getPlannerJob(id); }
+  catch { return Response.json({ error: 'Planner progress is temporarily unavailable. Please retry.' }, { status: 503 }); }
+  if (!job) return Response.json({ error: 'This planning request could not be found. Start again from review.' }, { status: 404 });
+  if (Date.now() - job.createdAt > plannerJobTtl) return Response.json({ error: 'This planning request has expired. Start again from review.' }, { status: 410 });
+  if (job.status === 'running' && job.startedAt && Date.now() - job.startedAt > 14 * 60 * 1000) {
+    return Response.json({ error: 'Planning took too long. Start a new request from review.', terminal: true }, { headers: { 'Cache-Control': 'no-store' } });
+  }
+  let history: 'guest' | 'saved' | 'failed' = 'guest';
+  if (job.result && supabaseConfigured()) {
+    try {
+      const client = await createClient();
+      const { data } = await client.auth.getClaims();
+      if (data?.claims?.sub) {
+        const { error } = await client.from('itinerary_history').upsert({
+          user_id: data.claims.sub, id: job.result.id, title: job.result.title.trim().slice(0, 200),
+          mode: job.result.mode, generated_at: job.result.generatedAt, itinerary: job.result,
+        }, { onConflict: 'user_id,id' }).abortSignal(AbortSignal.timeout(10000));
+        history = error ? 'failed' : 'saved';
+        if (error) console.error('Could not save itinerary history:', error.code);
+      }
+    } catch (error) { history = 'failed'; console.error('Could not save itinerary history:', error); }
+  }
+  return Response.json({ status: job.status, stage: job.stage, result: job.result, error: job.error, history }, { headers: { 'Cache-Control': 'no-store' } });
+}
 export async function POST(request: Request) {
   const origin = request.headers.get('origin');
   // Next may internally normalize request.url to localhost; compare the public Host.
@@ -49,6 +78,27 @@ export async function POST(request: Request) {
   } catch (e) { return Response.json({ error: e instanceof Error ? e.message : 'Invalid request.' }, { status: 400 }); }
   const mode = sampleMode() ? 'sample' : 'live';
   const hash = createHash('sha256').update(JSON.stringify(p) + mode).digest('hex');
+  if (mode === 'live' && asyncPlannerAvailable()) {
+    let job: PlannerJob | null;
+    try { job = await getPlannerJob(id); }
+    catch { return Response.json({ error: 'Trip storage is temporarily unavailable. Please retry.' }, { status: 503 }); }
+    if (job && job.hash !== hash) return Response.json({ error: 'Preferences changed. Return to review before generating again.' }, { status: 409 });
+    if (job && Date.now() - job.createdAt > plannerJobTtl) return Response.json({ error: 'This planning request has expired. Start again from review.' }, { status: 410 });
+    if (!job) {
+      const client = createHash('sha256').update(request.headers.get('x-forwarded-for')?.split(',')[0] || 'local').digest('hex');
+      const now = Date.now();
+      for (const [key, value] of rates) if (value.reset < now) rates.delete(key);
+      const rate = rates.get(client) || { count: 0, reset: now + 3600000 };
+      rate.count++; rates.set(client, rate);
+      if (rate.count > 10) return Response.json({ error: 'You have reached the hourly planning limit. Please try again later.' }, { status: 429 });
+      const initial: PlannerJob = { hash, createdAt: now, stage: 'Waiting for your planner', status: 'queued', preferences: p };
+      try { job = (await createPlannerJob(id, initial)) ? initial : await getPlannerJob(id); }
+      catch { return Response.json({ error: 'Trip storage is temporarily unavailable. Please retry.' }, { status: 503 }); }
+      if (!job) return Response.json({ error: 'Trip storage is temporarily unavailable. Please retry.' }, { status: 503 });
+      if (job.hash !== hash) return Response.json({ error: 'Preferences changed. Return to review before generating again.' }, { status: 409 });
+    }
+    return Response.json({ mode, status: job.status, stage: job.stage, dispatchToken: plannerDispatchToken(id, hash) }, { status: 202, headers: { 'Cache-Control': 'no-store' } });
+  }
   let account: { client: Awaited<ReturnType<typeof createClient>>; userId: string } | null = null;
   if (supabaseConfigured()) {
     try {
