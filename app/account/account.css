@@ -2,31 +2,31 @@
 .profile-page{min-height:100svh;padding:clamp(138px,14vw,180px) var(--gutter) 100px}
 .profile-shell{width:min(100%,980px);margin:0 auto}
 .profile-header{display:flex;align-items:flex-start;justify-content:space-between;gap:28px}
-.profile-header .eyebrow{color:var(--cinnamon);font-size:10px}
+.profile-header .eyebrow{color:var(--cinnamon);font-size:14px}
 .profile-header h1{font-family:var(--display);font-size:clamp(42px,6vw,72px);font-weight:400;text-transform:uppercase;color:var(--jungle);line-height:1.1;margin:13px 0 10px}
-.profile-email{color:var(--muted);font-size:14px;overflow-wrap:anywhere}
+.profile-email{color:var(--muted);font-size:16px;overflow-wrap:anywhere}
 .profile-identity{display:flex;align-items:center;gap:19px;margin-top:25px;min-width:0}
 .profile-avatar{display:grid;place-items:center;flex:none;width:78px;height:78px;border:1px solid var(--line);border-radius:50%;overflow:hidden;background:var(--jungle);color:var(--sand);font-family:var(--display);font-size:29px;letter-spacing:.02em}
 .profile-avatar img{display:block;width:100%;height:100%;object-fit:cover}
 .profile-person{display:grid;gap:4px;min-width:0}
 .profile-name{color:var(--jungle);font-size:21px;font-weight:650;line-height:1.2;overflow-wrap:anywhere}
-.profile-joined{color:var(--muted);font-size:11px;letter-spacing:.02em}
-.profile-header button{border:0;background:none;color:var(--jungle);padding:10px 0;text-decoration:underline;text-underline-offset:4px;font-size:13px;white-space:nowrap}
+.profile-joined{color:var(--muted);font-size:14px;letter-spacing:.02em}
+.profile-header button{border:0;background:none;color:var(--jungle);padding:10px 0;text-decoration:underline;text-underline-offset:4px;font-size:16px;white-space:nowrap}
 .profile-actions{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:38px}
-.profile-plan{display:inline-flex;align-items:center;justify-content:space-between;gap:28px;min-height:50px;padding:12px 20px;border-radius:3px;background:var(--jungle);color:var(--sand);font-size:13px;font-weight:650}
+.profile-plan{display:inline-flex;align-items:center;justify-content:space-between;gap:28px;min-height:50px;padding:12px 20px;border-radius:3px;background:var(--jungle);color:var(--sand);font-size:16px;font-weight:650}
 .profile-plan:hover{background:var(--ocean)}
-.profile-admin{font-size:13px;text-decoration:underline;text-underline-offset:4px}
+.profile-admin{font-size:16px;text-decoration:underline;text-underline-offset:4px}
 .profile-history{border-top:1px solid var(--line);margin-top:60px;padding-top:28px}
 .profile-history h2{font-family:var(--display);font-size:30px;font-weight:400;text-transform:uppercase;color:var(--jungle);margin-bottom:15px}
-.profile-history>p{font-size:14px;line-height:1.6;color:var(--muted)}
+.profile-history>p{font-size:16px;line-height:1.6;color:var(--muted)}
 .profile-history ul{list-style:none;margin:0;padding:0}
 .profile-history li+li{border-top:1px solid var(--line)}
 .profile-history li a{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:80px;padding:16px 0}
 .profile-history li a:hover strong{text-decoration:underline;text-underline-offset:3px}
 .profile-history li a>span:first-child{display:grid;gap:5px;min-width:0}
-.profile-history li strong{font-size:15px;line-height:1.4;color:var(--ink)}
-.profile-history li small{font-size:12px;color:var(--muted)}
+.profile-history li strong{font-size:18px;line-height:1.4;color:var(--ink)}
+.profile-history li small{font-size:14px;color:var(--muted)}
 .profile-history li a>span:last-child{font-size:20px;color:var(--jungle)}
-.profile-history-pages{display:flex;justify-content:space-between;gap:16px;margin-top:16px;font-size:12px}
+.profile-history-pages{display:flex;justify-content:space-between;gap:16px;margin-top:16px;font-size:14px}
 .profile-history-pages a{text-decoration:underline;text-underline-offset:3px}
-@media(max-width:600px){.profile-page{padding-top:128px}.profile-header{gap:15px}.profile-header h1{font-size:42px}.profile-identity{gap:14px;margin-top:22px}.profile-avatar{width:62px;height:62px;font-size:24px}.profile-name{font-size:17px}.profile-email{font-size:12px}.profile-actions{margin-top:30px}.profile-history{margin-top:44px}}
+@media(max-width:600px){.profile-page{padding-top:128px}.profile-header{gap:15px}.profile-header h1{font-size:42px}.profile-identity{gap:14px;margin-top:22px}.profile-avatar{width:62px;height:62px;font-size:24px}.profile-name{font-size:17px}.profile-email{font-size:14px}.profile-actions{margin-top:30px}.profile-history{margin-top:44px}}

@@ -5,20 +5,20 @@
 .fallbackMoments{padding:100px var(--gutter) 30px}
 .fallbackMoments>div{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:30px}
 .fallbackMoments figure{margin:0}.fallbackMoments img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover}
-.fallbackMoments figcaption{font-size:12px;margin-top:12px;color:var(--muted)}
+.fallbackMoments figcaption{font-size:14px;margin-top:12px;color:var(--muted)}
 .chapterNote{display:none;position:absolute;left:var(--gutter);top:18%;font-size:clamp(22px,2.4vw,36px);max-width:340px;line-height:1.35;color:var(--jungle)}
 .phoneScene{padding:70px 0;text-align:center}
 .phone{position:relative;margin:auto;width:264px;height:506px;padding:24px 16px 20px;border:8px solid var(--jungle);border-radius:35px;background:var(--sand);box-shadow:16px 24px 40px #12372a14;overflow:hidden;text-align:left}
 .speaker{position:absolute;top:6px;left:37%;width:26%;height:5px;border-radius:9px;background:var(--jungle)}
 .phoneBrand{font-size:20px;font-weight:650;letter-spacing:-1px}.phoneBrand span{color:var(--cinnamon)}
-.galleryTitle{margin:27px 0 15px;font-size:14px;display:flex;justify-content:space-between}.galleryTitle span{font-size:11px;color:var(--muted)}
+.galleryTitle{margin:27px 0 15px;font-size:16px;display:flex;justify-content:space-between}.galleryTitle span{font-size:14px;color:var(--muted)}
 .gallery{display:grid;grid-template-columns:1fr 1fr;gap:6px}.gallery>div{height:132px;background:#dce1d5;border-radius:2px}
 .composer{position:absolute;inset:77px 15px 26px;background:var(--sand)}
-.composer>p:first-child{display:flex;align-items:center;justify-content:space-between;font-size:13px;margin:0 0 17px}
+.composer>p:first-child{display:flex;align-items:center;justify-content:space-between;font-size:16px;margin:0 0 17px}
 .composerPhoto{height:190px;position:relative;background:#dce1d5}.composerPhoto img{object-fit:cover}
-.thought{font-size:15px;line-height:1.4;margin:17px 0 10px;max-width:200px}
-.tag{font-size:11px;color:var(--muted)}
-.share{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--jungle);color:var(--sand);font-size:12px;margin-top:18px}
+.thought{font-size:18px;line-height:1.4;margin:17px 0 10px;max-width:200px}
+.tag{font-size:14px;color:var(--muted)}
+.share{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--jungle);color:var(--sand);font-size:14px;margin-top:18px}
 .homeBar{position:absolute;bottom:9px;left:36%;width:28%;height:4px;border-radius:9px;background:var(--jungle)}
 .phoneCaption{font-size:16px;margin:27px 0 0;color:var(--muted)}
 .wall{padding:50px var(--gutter) 0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;align-items:start}
@@ -26,8 +26,8 @@
 .invitation{padding:80px var(--gutter) 100px;scroll-margin-top:110px}
 .invitation h2{font-size:clamp(52px,5.2vw,82px);line-height:1.08;margin:25px 0 35px;color:var(--jungle)}
 .invitation h2 span{color:var(--cinnamon)}
-.links{display:flex;gap:30px;flex-wrap:wrap}.links a{display:flex;gap:15px;align-items:center;min-height:44px;font-size:15px;font-weight:550;border-bottom:1px solid var(--line)}
-.sampleNote{font-size:11px;color:var(--muted);margin-top:24px}
+.links{display:flex;gap:30px;flex-wrap:wrap}.links a{display:flex;gap:15px;align-items:center;min-height:44px;font-size:18px;font-weight:550;border-bottom:1px solid var(--line)}
+.sampleNote{font-size:14px;color:var(--muted);margin-top:24px}
 .root a:focus-visible{outline:2px solid var(--cinnamon);outline-offset:5px}
 .root[data-memory-enhanced]{height:100svh;min-height:650px}
 .root[data-memory-enhanced] .fallbackMoments{display:none}
@@ -52,7 +52,7 @@
 .root[data-memory-enhanced] .traveller [data-memory-photo]{flex:none;height:100%;width:100%}
 .root[data-memory-enhanced] .invitation{position:absolute;top:50%;left:var(--gutter);width:34%;padding:0;transform:translateY(-38%)}
 .root[data-memory-enhanced] .invitation h2{font-size:clamp(46px,4.7vw,78px)}
-.root[data-memory-enhanced] .invitation .eyebrow{font-size:11px}
+.root[data-memory-enhanced] .invitation .eyebrow{font-size:14px}
 .root[data-memory-enhanced] .links{flex-direction:column;align-items:flex-start;gap:12px}
 .root[data-memory-enhanced] [data-memory-itinerary] [data-sample-itinerary]{max-width:min(440px,calc((100svh - 210px) * .75))}
 @media(min-width:768px) and (max-width:1100px){
@@ -71,7 +71,7 @@
 }
 @media(max-width:767px){
  .fallbackMoments{padding-top:70px}.fallbackMoments>div{grid-template-columns:1fr 1fr;gap:25px 12px}
- .fallbackMoments .eyebrow{font-size:10px}.fallbackMoments figcaption{font-size:11px}
+ .fallbackMoments .eyebrow{font-size:14px}.fallbackMoments figcaption{font-size:14px}
  .phoneScene{padding:45px 0 30px}.wall{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px;padding-top:40px}
  .slot{height:285px}.slot:nth-child(3n+2){height:310px}
  .invitation{padding-top:65px;padding-bottom:70px}.invitation h2{font-size:13.2vw}.links{flex-direction:column;align-items:flex-start;gap:16px}

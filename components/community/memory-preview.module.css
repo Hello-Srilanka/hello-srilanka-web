@@ -2,19 +2,19 @@
 .photo{position:relative;min-height:0;flex:1;background:#eceee4;overflow:hidden}
 .photo img{object-fit:cover;transition:transform .35s ease}
 .card:hover .photo img{transform:scale(1.025)}
-.place{position:absolute;z-index:1;bottom:12px;left:14px;color:#fff;font-size:11px;text-shadow:0 1px 8px #000;letter-spacing:.04em}
+.place{position:absolute;z-index:1;bottom:12px;left:14px;color:#fff;font-size:14px;text-shadow:0 1px 8px #000;letter-spacing:.04em}
 .details{padding:12px 14px;background:#fffefa;flex-shrink:0;display:flex;flex-direction:column}
-.byline{display:flex;align-items:center;gap:7px;font-size:9px;color:#687361}
-.byline :global(.co-avatar){width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:50%;font-size:8px;font-weight:650}
+.byline{display:flex;align-items:center;gap:7px;font-size:14px;color:#687361}
+.byline :global(.co-avatar){width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:50%;font-size:14px;font-weight:650}
 .byline :global(.co-avatar-clay){background:#e9d7c6;color:#734c34}
 .byline :global(.co-avatar-ocean){background:#d5e7e5;color:#286165}
 .byline :global(.co-avatar-jungle){background:#e0e5d4;color:#365735}
 .byline :global(.co-avatar-plum){background:#e6dbe1;color:#75536b}
 .yours{margin-left:auto;color:var(--cinnamon)}
-.details h3{font-family:var(--sans);font-size:clamp(13px,1.05vw,17px);font-weight:550;line-height:1.25;letter-spacing:-.035em;margin:6px 0;min-height:2.5em}
-.meta{display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#697961;margin-top:auto;min-height:20px}
+.details h3{font-family:var(--sans);font-size:clamp(14px,1.05vw,17px);font-weight:550;line-height:1.25;letter-spacing:-.035em;margin:6px 0;min-height:2.5em}
+.meta{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:#697961;margin-top:auto;min-height:20px}
 .meta>span:last-child{display:flex;gap:10px}
 .linkArea{position:absolute;inset:0;z-index:2}
 .card:focus-within{outline:2px solid var(--cinnamon);outline-offset:3px}
-@media(max-width:767px){.details{padding:11px 10px}.byline{font-size:8px}.details h3{font-size:14px}.place{font-size:10px;left:10px}}
+@media(max-width:767px){.details{padding:11px 10px}.byline{font-size:14px}.details h3{font-size:16px}.place{font-size:14px;left:10px}}
 @media(prefers-reduced-motion:reduce){.photo img{transition:none}.card:hover .photo img{transform:none}}

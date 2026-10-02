@@ -23,6 +23,7 @@
     "lucide-react": "latest",
     "motion": "latest",
     "next": "16.3.5",
+    "pdf-lib": "^1.17.1",
     "react": "latest",
     "react-dom": "latest",
     "three": "^0.186.1"
