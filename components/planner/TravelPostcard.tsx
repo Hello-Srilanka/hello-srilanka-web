@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { ArrowUpRight, Compass, Sparkles } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { journeyStory, moments } from '@/lib/planner/discovery';
 import { travellers, type Preferences } from '@/lib/planner/model';
 
@@ -11,7 +11,6 @@ export default function TravelPostcard({ p, compact = false }: { p: Preferences;
     <div className="postcard-photos" aria-hidden="true">
       <div className="postcard-main" key={photos[0].image}><Image src={`/images/${photos[0].image}.webp`} alt="" fill sizes={compact ? '(max-width: 760px) 85vw, 45vw' : '(max-width: 760px) 110px, 33vw'} priority /><span>{selected.length ? photos[0].name : 'A journey waiting to happen'}</span></div>
       <div className="postcard-inset" key={(photos[1] || moments[1]).image}><div><Image src={`/images/${(photos[1] || moments[1]).image}.webp`} alt="" fill sizes="180px" /></div><span>Your next chapter <ArrowUpRight size={13} /></span></div>
-      <div className="postcard-stamp"><span>HELLO</span><Sparkles size={24} strokeWidth={1} /><span>SRI LANKA</span></div>
     </div>
     <div className="postcard-copy" aria-live="polite" aria-atomic="true"><p className="postcard-handwritten">A little more you, with every choice.</p><h2>{story.title}</h2><div className="postcard-chips">{story.duration && <span>{story.duration}</span>}{selected.length > 0 && <span>{selected.length} {selected.length === 1 ? 'thing' : 'things'} you love</span>}{compact && <span>{travellers(p)}</span>}</div></div>
   </aside>;

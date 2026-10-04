@@ -88,7 +88,6 @@ export default function GenerationScreen({ mode, stages }: { mode: string; stage
         <article className="generation-fact-card" key={cardIndex}>
           <span className="generation-fact-category">{card.category}</span>
           <div className="generation-fact-body"><span className="generation-fact-display" lang={card.category.includes('SINHALA') ? 'si' : undefined}>{card.display}</span>{card.language && <span className="generation-fact-roman">{card.language}</span>}<h3>{card.title}</h3><p>{card.body}</p></div>
-          <a href={card.source} target="_blank" rel="noopener noreferrer">Source: {card.sourceLabel} <ArrowUpRight size={14} /></a>
         </article>
         <div className="generation-card-controls"><button type="button" onClick={() => changeCard(-1)} aria-label="Previous island fact"><ArrowLeft size={18} /></button><span aria-hidden="true">{cards.map((_, index) => <i key={index} className={index === cardIndex ? 'current' : ''} />)}</span><button type="button" onClick={() => changeCard(1)} aria-label="Next island fact"><ArrowRight size={18} /></button></div>
       </aside>
