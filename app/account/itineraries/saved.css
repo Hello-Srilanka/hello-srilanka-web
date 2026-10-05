@@ -1,3 +1,9 @@
 .saved-itinerary-page main{padding-top:110px}
-.saved-itinerary-back{width:min(92%,1180px);margin:0 auto}
+.saved-itinerary-back{position:sticky;top:91px;z-index:8;width:min(100%,1180px);margin:0 auto;padding:0 40px;background:var(--sand)}
 .saved-itinerary-back a{display:inline-flex;align-items:center;min-height:44px;font-size:16px;color:var(--jungle);text-decoration:underline;text-underline-offset:4px}
+.saved-itinerary-page .journal-page{padding-top:0}
+.saved-itinerary-page .journal-topline{position:sticky;top:135px;z-index:7;margin-left:-40px;margin-right:-40px;padding:0 40px;background:var(--sand)}
+.saved-itinerary-page .journal-day-nav{position:static}
+.saved-itinerary-page .journal-day{scroll-margin-top:190px}
+@media(max-width:900px){.saved-itinerary-back{top:76px}.saved-itinerary-page .journal-topline{top:120px}}
+@media(max-width:700px){.saved-itinerary-back{padding:0 20px}.saved-itinerary-page .journal-topline{margin-left:-20px;margin-right:-20px;padding:0 20px}.saved-itinerary-page .journal-day{scroll-margin-top:180px}}
