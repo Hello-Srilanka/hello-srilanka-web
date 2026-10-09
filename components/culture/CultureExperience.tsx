@@ -2,24 +2,26 @@
 
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import useEmblaCarousel from 'embla-carousel-react';
 import { useReducedMotion } from 'motion/react';
 import { ArrowLeft, ArrowRight, ArrowUpRight, Pause, Play } from 'lucide-react';
 import { cultureChapters } from '@/lib/culture/chapters';
+import { cultureImages, cultureImageSrc } from '@/lib/culture/images';
 import { CultureArtwork } from './CultureArtwork';
 import { CultureGallery } from './CultureGallery';
 import { CultureThread, threadPath } from './CultureThread';
 import styles from './culture.module.css';
 
 const slideCount = cultureChapters.length + 2;
-const autoplayDelay = 5500;
+const autoplayDelay = 2000;
 
 export function CultureExperience() {
   const root = useRef<HTMLElement>(null);
   const previousSlide = useRef(0);
   const pointerPlaybackIntent = useRef<boolean | null>(null);
   const reducedMotion = useReducedMotion();
-  const [viewport, carousel] = useEmblaCarousel({ align: 'start', loop: false, duration: reducedMotion ? 0 : 16 });
+  const [viewport, carousel] = useEmblaCarousel({ align: 'start', containScroll: 'keepSnaps', loop: false, duration: reducedMotion ? 0 : 12 });
   const [active, setActive] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [hovered, setHovered] = useState(false);
@@ -124,14 +126,6 @@ export function CultureExperience() {
     alignStage();
   };
 
-  const chooseChapter = (index: number) => {
-    setPlaying(false);
-    setAnnouncement(`Story ${index + 2} of ${slideCount}: ${cultureChapters[index].name}`);
-    carousel?.scrollTo(index + 1, !!reducedMotion);
-    history.pushState(null, '', `#culture-${cultureChapters[index].id}`);
-    alignStage();
-  };
-
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.altKey || event.ctrlKey || event.metaKey) return;
     if (event.key === 'ArrowRight') { event.preventDefault(); move(1); }
@@ -143,28 +137,31 @@ export function CultureExperience() {
 
   return <section id="experiences" ref={root} className={styles.experience} data-active-chapter={active} data-theme={active > 0 && active < slideCount - 1 && cultureChapters[active - 1].theme === 'dark' ? 'dark' : 'light'} data-stage-active={visible} aria-labelledby="culture-title">
     <div className={styles.stage} data-culture-stage role="region" aria-roledescription="carousel" aria-label="Sri Lankan culture stories" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onFocusCapture={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPlaying(false); }} onKeyDown={onKeyDown}>
-      <CultureThread />
-      <nav className={styles.navigation} aria-label="Choose a culture story">
-        {cultureChapters.map((chapter, index) => <button key={chapter.id} type="button" aria-label={`${chapter.number} — ${chapter.keyword}: ${chapter.name}`} aria-current={active === index + 1 ? 'step' : undefined} onClick={() => chooseChapter(index)}><i aria-hidden="true" /></button>)}
-      </nav>
       <div className={styles.viewport} ref={viewport} tabIndex={0} aria-label="Culture stories. Swipe or use the left and right arrow keys to explore.">
         <div className={styles.track}>
           <div className={`${styles.panel} ${styles.intro}`} id="culture-intro" role="group" aria-roledescription="slide" aria-label={`1 of ${slideCount}: Introduction`} aria-hidden={active !== 0} inert={active !== 0}>
+            <CultureThread />
             <div><h2 id="culture-title">AN ISLAND<br />YOU DON’T JUST SEE.<br /><em>YOU FEEL IT.</em></h2></div>
+            <button className={styles.introPreview} type="button" onClick={() => move(1)} aria-label={`Explore ${cultureChapters[0].name}`}>
+              <span className={styles.previewPhoto}><Image src={cultureImageSrc(cultureImages[cultureChapters[0].id][0].file)} alt="" fill unoptimized sizes="(max-width: 767px) 55vw, 24vw" /></span>
+              <span className={styles.previewCaption}><span>SWIPE INTO THE STORIES</span><span>{cultureChapters[0].keyword} <ArrowRight size={22} strokeWidth={1.5} /></span></span>
+            </button>
           </div>
           {cultureChapters.map((chapter, index) => <section key={chapter.id} id={`culture-${chapter.id}`} className={styles.panel} data-theme={chapter.theme} role="group" aria-roledescription="slide" aria-label={`${index + 2} of ${slideCount}: ${chapter.name}`} aria-hidden={active !== index + 1} inert={active !== index + 1} aria-labelledby={`culture-${chapter.id}-title`}>
+            <div className={styles.peek} aria-hidden="true"><Image src={cultureImageSrc(cultureImages[chapter.id][0].file)} alt="" fill unoptimized sizes="150px" /><span>{chapter.keyword}</span></div>
             <div className={styles.copy}><h3 id={`culture-${chapter.id}-title`}>{chapter.title.map((line, i) => <span key={line} className={i === chapter.title.length - 1 ? styles.accent : undefined}>{line}</span>)}</h3><div className={styles.illustration}><CultureArtwork type={chapter.id} /></div></div>
             <div className={styles.artwork}><CultureGallery type={chapter.id} name={chapter.name} /></div>
           </section>)}
-          <div id="culture-finale" className={`${styles.panel} ${styles.finale}`} role="group" aria-roledescription="slide" aria-label={`${slideCount} of ${slideCount}: Keep exploring`} aria-hidden={active !== slideCount - 1} inert={active !== slideCount - 1}><div><h3>NOT KEPT<br />BEHIND GLASS.<br /><em>STILL BEING LIVED.</em></h3><Link href="/memories" className={styles.cta}>Explore the stories <ArrowUpRight size={24} strokeWidth={1.5} /></Link></div></div>
+          <div id="culture-finale" className={`${styles.panel} ${styles.finale}`} role="group" aria-roledescription="slide" aria-label={`${slideCount} of ${slideCount}: Keep exploring`} aria-hidden={active !== slideCount - 1} inert={active !== slideCount - 1}><span className={styles.finalePeek} aria-hidden="true">EXPLORE <ArrowUpRight size={25} /></span><div><h3>NOT KEPT<br />BEHIND GLASS.<br /><em>STILL BEING LIVED.</em></h3><Link href="/memories" className={styles.cta}>Explore the stories <ArrowUpRight size={24} strokeWidth={1.5} /></Link></div></div>
         </div>
       </div>
+      {active > 0 && active < slideCount - 1 && <button className={styles.peekAction} type="button" onClick={() => move(1)} aria-label={`Next story: ${active < cultureChapters.length ? cultureChapters[active].name : 'Keep exploring'}`}><ArrowRight size={24} strokeWidth={1.5} /></button>}
       <div className={styles.controls}>
         <span className={styles.progress} aria-hidden="true"><span key={active} className={autoAdvancing ? styles.progressRunning : undefined} /></span>
         <div className={styles.actions}>
           <button type="button" aria-label={isPlaying ? 'Pause automatic stories' : 'Play automatic stories'} aria-pressed={isPlaying} onPointerDownCapture={() => { pointerPlaybackIntent.current = !isPlaying; }} onClick={event => { const next = event.detail > 0 && pointerPlaybackIntent.current !== null ? pointerPlaybackIntent.current : !isPlaying; pointerPlaybackIntent.current = null; setHovered(false); setPlaying(next); }} disabled={!!reducedMotion || active === slideCount - 1}>{isPlaying ? <Pause size={18} /> : <Play size={18} />}</button>
           <button type="button" aria-label="Previous culture story" onClick={() => move(-1)} disabled={active === 0}><ArrowLeft size={20} /></button>
-          <button type="button" aria-label="Next culture story" onClick={() => move(1)} disabled={active === slideCount - 1}><ArrowRight size={20} /></button>
+          <button type="button" className={styles.nextAction} aria-label="Next culture story" onClick={() => move(1)} disabled={active === slideCount - 1}><span>{active === 0 ? 'Explore stories' : 'Next story'}</span><ArrowRight size={20} /></button>
         </div>
       </div>
       <span className={styles.srOnly} aria-live="polite" aria-atomic="true">{announcement}</span>
