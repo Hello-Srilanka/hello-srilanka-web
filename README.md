@@ -28,6 +28,19 @@ npm run start
 
 The build uses Next.js’s Webpack compiler. Serve media with correct MIME types and byte-range support.
 
+## Coming soon on the existing Netlify site
+
+The separate page is at `/coming-soon` and uses the existing desktop/mobile hero films. Set `COMING_SOON=true` to show it at `/` while keeping the same domain. Other page URLs temporarily redirect to `/`, API requests and Server Actions return 503, and the Netlify itinerary generator stops accepting work. Static assets remain available. Leave the variable unset or `false` to use the full application locally.
+
+1. Open the existing Netlify project for `hellosrilanka.lk`.
+2. Go to **Project configuration → Environment variables → Add a variable**. Add `COMING_SOON` with value `true`. Use **All scopes**, or include both **Builds** and **Functions**. Apply `true` to the **Production** deploy context. Also apply it to other public deploy contexts if those should show the coming soon page.
+3. Commit these changes and push them to the branch that Netlify uses for production (this checkout is on `main`). A Git-connected project normally deploys automatically after the push. If automatic builds are disabled, use **Deploys → Trigger deploy → Deploy project**. Keep the Next.js build command `npm run build` and publish directory `.next`.
+4. After the new deploy is published, open `https://hellosrilanka.lk` in a private window. It should show the coming soon page; `/plan`, `/memories` and `/login` should return to the homepage. `/api/itinerary` should return 503.
+
+To launch the full application later, change `COMING_SOON` to `false` and create a new deploy. Set this flag through the Netlify UI, CLI or API: variables in `netlify.toml` are not available to serverless functions at runtime. Existing older deploy URLs retain their own deployment settings; use Netlify access controls if old full-app deploys must also be private.
+
+References: [Netlify environment variables](https://docs.netlify.com/build/environment-variables/get-started/), [function environment scopes](https://docs.netlify.com/build/functions/environment-variables/), [production deploys](https://docs.netlify.com/deploy/deploy-types/production-deploy/).
+
 ## Planning MVP
 
 Every existing planning CTA opens `/plan`:

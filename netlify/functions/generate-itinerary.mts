@@ -5,6 +5,7 @@ import type { AiCallMetrics } from '../../lib/planner/provider';
 const idPattern = /^[a-f0-9-]{36}$/;
 
 export default async function generateItinerary(request: Request) {
+  if (process.env.COMING_SOON === 'true') return;
   if (request.method !== 'POST') return;
   let id: string, token: string;
   try {
