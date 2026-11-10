@@ -30,3 +30,10 @@
 
 /* Match the independently framed portrait film and poster. */
 @media(max-width:767px){.hero-photo,.hero-video{object-position:center center}}
+
+/* Keep the portrait Nine Arch Bridge photograph focused on the train. */
+.story-scene-4 img{object-position:center 27%}
+
+/* Keep the leopard's face and ears inside the story crop. */
+.story-scene-0 img{object-position:center 22%}
+@media(max-width:600px){.story-scene-0 img{object-position:68% center}}
