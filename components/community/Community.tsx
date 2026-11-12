@@ -7,11 +7,12 @@ import { ArrowUpRight, ArrowRight, Plus, Search, Bookmark, MapPin, Compass, X, C
 import { authors, seedComments, seedPosts } from '@/lib/community/data';
 import { emptyState, filterPosts, initials, topics, type Author, type CommunityPost, type CommunityState, type FeedTab, type PostKind } from '@/lib/community/model';
 import { readCommunity, saveCommunity } from '@/lib/community/storage';
-import PostCard, { Avatar } from './PostCard';
+import { Avatar } from './PostCard';
 import CommunityDialog from './CommunityDialog';
 import PostComposer from './PostComposer';
 import PostDetail from './PostDetail';
-import MemoryFilm from './MemoryFilm';
+import MemoryMap from './MemoryMap';
+import MemoryPuzzle from './MemoryPuzzle';
 import { Navbar } from '@/components/Navbar';
 
 const topicIcons = [Waves, Mountain, Coffee, Compass, Leaf];
@@ -56,6 +57,7 @@ export default function Community() {
   const you: Author = { id: 'you', name: state.profile.name, initials: initials(state.profile.name), color: 'jungle', country: 'Your corner of the island', bio: state.profile.bio };
   const authorFor = (id: string) => id === 'you' ? you : authors.find(author => author.id === id) ?? authors[0];
   const filtered = filterPosts(posts, { tab, topic, destination, query, saved: state.saves, hidden: state.hidden });
+  const visiblePosts = filtered;
   const selected = detail ? posts.find(post => post.id === detail.id && !state.hidden.includes(post.id)) : undefined;
   const profileAuthor = profile ? authorFor(profile) : null;
   const profilePosts = profile ? posts.filter(post => post.authorId === profile && !state.hidden.includes(post.id)) : [];
@@ -86,10 +88,7 @@ export default function Community() {
     <Navbar memories />
     <div className="co-navbar-spacer" aria-hidden="true" />
     <main id="main">
-      <section className="co-memories-hero" aria-labelledby="community-title">
-        <MemoryFilm />
-        <h1 id="community-title" className="co-visually-hidden">Island Memories. Little moments, lasting memories.</h1>
-      </section>
+      <MemoryMap posts={posts.filter(post => !state.hidden.includes(post.id))} />
       <div className="co-main">
       {storageError && <div className="co-storage-warning" role="alert">{storageError}<button onClick={() => void saveCommunity(state).then(() => { setStorageError(''); setNotice('Your journal is saved on this device.'); }).catch(() => setNotice('Storage is still unavailable. Please keep this tab open.'))}>Retry saving</button></div>}
       <div className="co-content-layout" id="community-feed">
@@ -97,12 +96,12 @@ export default function Community() {
         <section className="co-feed" aria-label="Traveller memories"><div className="co-feed-navigation"><div className="co-feed-tabs" role="group" aria-label="Browse memories">{tabItems.map(item => <button key={item.id} className={tab === item.id ? 'active' : ''} aria-pressed={tab === item.id} onClick={() => chooseTab(item.id)}>{item.id === 'saved' && <Bookmark size={14} />}{item.label}{item.id === 'saved' && savedCount > 0 && <span>{savedCount}</span>}</button>)}{tab === 'mine' && <button className="active" aria-pressed="true">My memories</button>}</div><button className={`co-filter-toggle co-icon-button ${showFilters ? 'active' : ''}`} aria-label="Toggle destination filters" aria-expanded={showFilters} onClick={() => setShowFilters(!showFilters)}><SlidersHorizontal size={19} /></button></div>
           <div className="co-feed-search"><Search size={17} /><input ref={searchRef} aria-label="Search stories, places, and experiences" value={query} onChange={event => { setQuery(event.target.value); setLimit(24); }} placeholder="A place, a feeling, a little inspiration…" />{query && <button className="co-icon-button" aria-label="Clear search" onClick={() => setQuery('')}><X size={15} /></button>}<select className={showFilters ? 'co-select-open' : ''} aria-label="Filter by destination" value={destination} onChange={event => { setDestination(event.target.value); setLimit(24); }}><option value="">All destinations</option>{Array.from(new Set(posts.map(post => post.destination))).sort().map(place => <option key={place}>{place}</option>)}</select></div>
           <div className="co-topic-filters" role="group" aria-label="Filter by experience"><button aria-pressed={!topic} className={!topic ? 'active' : ''} onClick={() => { setTopic(''); setLimit(24); }}><Compass size={14} />A little of everything</button>{topics.map((item, index) => { const Icon = topicIcons[index]; return <button key={item} aria-pressed={topic === item} className={topic === item ? 'active' : ''} onClick={() => { setTopic(topic === item ? '' : item); setLimit(24); }}><Icon size={14} />{item}</button>; })}</div>
-          <div className="co-feed-heading"><div><p className="co-eyebrow">{tab === 'saved' ? 'KEEP THE FEELING' : tab === 'mine' ? 'YOUR LITTLE CORNER' : tab === 'questions' ? 'GOOD QUESTIONS. LOCAL PERSPECTIVES.' : 'COLLECTED ALONG THE WAY'}</p><h2>{destination || (tab === 'saved' ? 'For a someday kind of day.' : tab === 'mine' ? 'Your island memories.' : tab === 'questions' ? 'Ask. Share. Find your way.' : 'Moments that stay with you.')}</h2></div><span className="co-result-count" aria-live="polite">{filtered.length} {filtered.length === 1 ? 'memory' : 'memories'}</span></div>
+          <div className="co-feed-heading"><div><p className="co-eyebrow">{tab === 'saved' ? 'KEEP THE FEELING' : tab === 'mine' ? 'YOUR LITTLE CORNER' : tab === 'questions' ? 'GOOD QUESTIONS. LOCAL PERSPECTIVES.' : 'COLLECTED ALONG THE WAY'}</p><h2>{destination || (tab === 'saved' ? 'For a someday kind of day.' : tab === 'mine' ? 'Your island memories.' : tab === 'questions' ? 'Ask. Share. Find your way.' : 'Moments that stay with you.')}</h2></div><span className="co-result-count" aria-live="polite">{visiblePosts.length} {visiblePosts.length === 1 ? 'memory' : 'memories'}</span></div>
           {tab === 'saved' && <div className="co-saved-note"><Bookmark size={20} /><p>Your favourite moments, all in one place.<span>Keep a little inspiration for your next Sri Lanka journey.</span></p><Link href="/plan">Start planning <ArrowUpRight size={16} /></Link></div>}
           {tab === 'mine' && <div className="co-mine-note"><p>A collection that could only be yours.</p><button onClick={() => setComposer({ kind: 'moment' })}><Plus size={15} />Add a moment</button></div>}
-          {filtered.length ? <div className="co-post-grid">{filtered.slice(0, limit).map(post => <PostCard key={post.id} post={post} author={authorFor(post.authorId)} liked={state.likes.includes(post.id)} saved={state.saves.includes(post.id)} commentCount={comments.filter(comment => comment.postId === post.id).length} open={focus => openPost(post, focus)} like={() => toggle(post.id, 'likes')} save={() => toggle(post.id, 'saves')} profile={() => openProfile(post.authorId)} share={() => share(post)} />)}</div> : <div className="co-empty"><span><Compass size={39} strokeWidth={1} /></span><h3>{tab === 'saved' ? 'Leave a little room for inspiration.' : tab === 'mine' ? 'Every journal starts somewhere.' : 'A path still waiting to be found.'}</h3><p>{tab === 'saved' ? 'Tap the bookmark on a story you love. You’ll find it here, ready when you are.' : tab === 'mine' ? 'Share a photograph, tell a story, or ask the island a question.' : 'Try a different place or feeling. A good story is never far away.'}</p><button className="co-primary" onClick={() => { if (tab === 'mine') setComposer({ kind: 'moment' }); else if (tab === 'saved') chooseTab('discover'); else resetFilters(); }}>{tab === 'mine' ? 'Share your first moment' : tab === 'saved' ? 'Explore the journal' : 'Clear the filters'}<ArrowRight size={17} /></button></div>}
-          {filtered.length > limit && <div className="co-more"><span>A little more of the island awaits.</span><button className="co-secondary" onClick={() => setLimit(value => value + 6)}>Keep wandering <ArrowDownIcon /></button></div>}
-          {filtered.length > 0 && filtered.length <= limit && <p className="co-feed-end"><Sun size={18} strokeWidth={1} />You’ve reached the end of this little trail.</p>}
+          {visiblePosts.length ? <MemoryPuzzle posts={visiblePosts.slice(0, limit)} open={post => openPost(post)} /> : <div className="co-empty"><span><Compass size={39} strokeWidth={1} /></span><h3>{tab === 'saved' ? 'Leave a little room for inspiration.' : tab === 'mine' ? 'Every journal starts somewhere.' : 'A path still waiting to be found.'}</h3><p>{tab === 'saved' ? 'Tap the bookmark on a story you love. You’ll find it here, ready when you are.' : tab === 'mine' ? 'Share a photograph, tell a story, or ask the island a question.' : 'Try a different place or feeling. A good story is never far away.'}</p><button className="co-primary" onClick={() => { if (tab === 'mine') setComposer({ kind: 'moment' }); else if (tab === 'saved') chooseTab('discover'); else resetFilters(); }}>{tab === 'mine' ? 'Share your first moment' : tab === 'saved' ? 'Explore the journal' : 'Clear the filters'}<ArrowRight size={17} /></button></div>}
+          {visiblePosts.length > limit && <div className="co-more"><span>A little more of the island awaits.</span><button className="co-secondary" onClick={() => setLimit(value => value + 6)}>Keep wandering <ArrowDownIcon /></button></div>}
+          {visiblePosts.length > 0 && visiblePosts.length <= limit && <p className="co-feed-end"><Sun size={18} strokeWidth={1} />You’ve reached the end of this little trail.</p>}
         </section>
       </div>
       <section className="co-bottom-invitation"><div><p className="co-eyebrow">FROM SOMEONE ELSE’S STORY TO YOUR OWN</p><h2>Found your kind of Sri Lanka?</h2><p>Let’s turn that feeling into a journey.</p></div><Link href="/plan" className="co-primary">Plan my journey <ArrowUpRight size={19} /></Link></section>

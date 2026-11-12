@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Community from '@/components/community/Community';
 import '../community/community.css';
+import './memories-map.css';
 
 export const metadata: Metadata = {
   title: 'Island Memories | HelloSriLanka',
