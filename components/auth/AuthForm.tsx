@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { HeroMedia } from '@/components/HeroMedia';
 import GoogleOneTap from './GoogleOneTap';
 
 export default function AuthForm({ mode, configured, googleClientId, message }: { mode: 'login' | 'signup'; configured: boolean; googleClientId?: string; message?: string }) {
@@ -51,10 +52,32 @@ export default function AuthForm({ mode, configured, googleClientId, message }: 
       setBusy(false);
     }
   }
-  return <main id="main" className="auth-page"><div className="auth-shell"><Link className="auth-brand" href="/">hello<strong>srilanka</strong><span>.</span></Link><div className="auth-card"><p className="eyebrow">YOUR SRI LANKA. YOUR WAY.</p><h1>{signup ? 'Make an account.' : 'Welcome back.'}</h1><p className="auth-intro">{signup ? 'Create an account to access your travel space.' : 'Sign in to your HelloSriLanka account.'}</p>
-    {!configured && <p className="auth-message" role="alert">Account sign-in is awaiting Supabase setup. Add the project URL and publishable key to the server environment.</p>}
-    {notice && <p className="auth-message" role="status">{notice}</p>}{error && <p className="auth-message auth-error" role="alert">{error}</p>}
-    {configured && <>{googleClientId && <GoogleOneTap clientId={googleClientId} onError={setError} />}<button className="auth-google" type="button" disabled={busy} onClick={continueWithGoogle}>Continue with Google</button><p className="auth-divider"><span>or continue with email</span></p></>}
-    <form onSubmit={submit}><label htmlFor="email">Email address</label><input id="email" type="email" autoComplete="email" required maxLength={254} value={email} onChange={event => setEmail(event.target.value)} /><label htmlFor="password">Password</label><input id="password" type="password" autoComplete={signup ? 'new-password' : 'current-password'} required minLength={8} value={password} onChange={event => setPassword(event.target.value)} /><button className="auth-submit" type="submit" disabled={busy || !configured}>{busy ? 'Working…' : signup ? 'Create account' : 'Sign in'}</button></form>
-    <p className="auth-switch">{signup ? 'Already have an account?' : 'New here?'} <Link href={signup ? '/login' : '/signup'}>{signup ? 'Sign in' : 'Create an account'}</Link></p></div><Link className="auth-back" href="/plan">← Back to the planner</Link></div></main>;
+  return <main id="main" className="auth-page auth-page-film">
+    <div className="auth-film" aria-hidden="true"><HeroMedia /><div className="auth-film-shade" /></div>
+    <div className="auth-shell">
+      <Link className="auth-brand" href="/">hello<strong>srilanka</strong><span>.</span></Link>
+      <div className="auth-card auth-card-glass">
+        <p className="eyebrow">YOUR SRI LANKA. YOUR WAY.</p>
+        <h1>{signup ? 'Make an account.' : 'Welcome back.'}</h1>
+        <p className="auth-intro">{signup ? 'Create an account to access your travel space.' : 'Sign in to your HelloSriLanka account.'}</p>
+        {!configured && <p className="auth-message auth-message-glass" role="alert">Account sign-in is awaiting Supabase setup. Add the project URL and publishable key to the server environment.</p>}
+        {notice && <p className="auth-message auth-message-glass" role="status">{notice}</p>}
+        {error && <p className="auth-message auth-error auth-message-glass" role="alert">{error}</p>}
+        {configured && <>
+          {googleClientId && <GoogleOneTap clientId={googleClientId} onError={setError} />}
+          <button className="auth-google auth-google-glass" type="button" disabled={busy} onClick={continueWithGoogle}>Continue with Google</button>
+          <p className="auth-divider"><span>or continue with email</span></p>
+        </>}
+        <form onSubmit={submit}>
+          <label htmlFor="email">Email address</label>
+          <input id="email" type="email" autoComplete="email" required maxLength={254} value={email} onChange={event => setEmail(event.target.value)} />
+          <label htmlFor="password">Password</label>
+          <input id="password" type="password" autoComplete={signup ? 'new-password' : 'current-password'} required minLength={8} value={password} onChange={event => setPassword(event.target.value)} />
+          <button className="auth-submit" type="submit" disabled={busy || !configured}>{busy ? 'Working…' : signup ? 'Create account' : 'Sign in'}</button>
+        </form>
+        <p className="auth-switch">{signup ? 'Already have an account?' : 'New here?'} <Link href={signup ? '/login' : '/signup'}>{signup ? 'Sign in' : 'Create an account'}</Link></p>
+      </div>
+      <Link className="auth-back" href="/">← Back to the island</Link>
+    </div>
+  </main>;
 }
