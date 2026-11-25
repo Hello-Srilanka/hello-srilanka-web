@@ -1,4 +1,4 @@
-import { nationalityProfile, supportedNationalities } from './nationality';
+import { supportedNationalities } from './nationality';
 
 export const interests = [
   ['Nature', 'nuwara-tea-country', 'Green hills & wide-open spaces'],
@@ -20,7 +20,8 @@ export type Preferences = {
   undecided: boolean; arrivalDate: string; departureDate: string; duration: number; month: string;
   arrival: string; departure: string; arrivalTime: string; departureTime: string;
   adults: number; children: number; ages: string[]; interests: string[];
-  nationality: string; otherNationality: string; useNationalitySuggestions: boolean;
+  nationality: string; otherNationality: string;
+  useNationalitySuggestions: boolean; // Retained so existing itinerary request hashes still match.
   pace: 'Relaxed' | 'Balanced' | 'Packed'; budget: string; currency: string;
   transport: string; accommodation: string;
   mustVisit: string; accessibility: string;
@@ -63,16 +64,12 @@ export function normalizePreferences(p: Preferences): Preferences {
   return { ...p, duration: Number.isInteger(calculatedDuration) ? calculatedDuration : p.duration, month: 'Any month' };
 }
 export function itineraryRequestPreferences(p: Preferences) {
-  const { undecided, arrivalDate, departureDate, duration, month, nationality, otherNationality, useNationalitySuggestions, ...shared } = p;
-  const profile = useNationalitySuggestions ? nationalityProfile(nationality) : null;
+  const { undecided, arrivalDate, departureDate, duration, month } = p;
   return {
-    ...shared,
-    ...(profile ? { nationality: nationality === 'Other' ? otherNationality.trim() : nationality } : {}),
-    nationalitySuggestions: profile ? {
-      enabled: true,
-      suggestedInterests: profile.interests,
-      activityIdeas: profile.ideas,
-    } : { enabled: false },
+    arrival: p.arrival, departure: p.departure, arrivalTime: p.arrivalTime, departureTime: p.departureTime,
+    adults: p.adults, children: p.children, ages: p.ages, interests: p.interests,
+    pace: p.pace, budget: p.budget, currency: p.currency,
+    transport: p.transport, accommodation: p.accommodation, mustVisit: p.mustVisit, accessibility: p.accessibility,
     datePlan: undecided
       ? { mode: 'flexible' as const, durationDays: duration, preferredMonth: month }
       : { mode: 'fixed' as const, arrivalDate, departureDate, dayCount: dayCount(p) },
@@ -114,7 +111,6 @@ export function validatePreferences(p: Preferences, step?: number): Errors {
   if (step === undefined || step === 0) {
     if (p.nationality && p.nationality !== 'Other' && p.nationality !== 'Prefer not to say' && !supportedNationalities.some(n => n.name === p.nationality)) e.nationality = 'Choose a nationality from the list.';
     if (p.nationality === 'Other' && (!p.otherNationality.trim() || p.otherNationality.length > 80)) e.otherNationality = 'Search and choose a country.';
-    if (p.useNationalitySuggestions && !nationalityProfile(p.nationality)) e.useNationalitySuggestions = 'Choose one of the five supported nationalities to use these suggestions.';
   }
   if (step === undefined || step === 2) {
     if (!p.interests.length || p.interests.some(i => !interests.some(([name]) => name === i)) || new Set(p.interests).size !== p.interests.length) e.interests = 'Choose at least one interest.';

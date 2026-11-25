@@ -52,7 +52,13 @@ const { finalize } = require('../lib/planner/validation.ts');
     await page.locator('#result-heading').waitFor({ timeout: 30000 });
     assert.ok(polls >= 3, 'polling recovered after a dropped connection');
     assert.equal(dispatches, 1, 'one background generation was started');
-    assert.equal(await page.locator('.journal-day-nav a').count(), 7);
+    const dayPicker = page.getByRole('navigation', { name: 'Jump to an itinerary day' });
+    assert.equal(await dayPicker.getByRole('link').count(), 7);
+    assert.equal(await page.locator('#journal-day-1 .journal-day-toggle').getAttribute('aria-expanded'), 'true');
+    const lastDay = dayPicker.getByRole('link', { name: /^Day 7\b/ });
+    await lastDay.click();
+    assert.equal(await lastDay.getAttribute('aria-current'), 'location');
+    assert.equal(await page.locator('#journal-day-7 .journal-day-toggle').getAttribute('aria-expanded'), 'true');
     assert.deepEqual(errors, []);
     console.log('PASS: a disconnected progress poll recovers and the same background itinerary appears.');
   } finally { await browser.close(); }

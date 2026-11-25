@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Planner from '@/components/planner/Planner';
+import 'flag-icons/css/flag-icons.min.css';
 import './planner.css';
 import './generation.css';
 import './journal.css';

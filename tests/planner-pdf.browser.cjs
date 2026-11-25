@@ -26,7 +26,7 @@ const path = require('node:path');
     await page.goto((process.env.TEST_BASE_URL || 'http://localhost:3001') + '/plan');
     await page.getByRole('button', { name: 'Create my itinerary', exact: true }).click();
     await page.locator('#result-heading').waitFor();
-    await page.locator('#download-full-itinerary').click();
+    await page.getByRole('button', { name: 'Download PDF', exact: true }).click();
     await page.locator('.journal-export-toolbar small').waitFor({ timeout: 60000 });
     const count = Number((await page.locator('.journal-export-toolbar small').innerText()).split(' ')[0]);
     assert.ok(count > 1, 'long itineraries produce multiple preview pages');

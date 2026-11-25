@@ -18,6 +18,7 @@
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.1",
     "embla-carousel-react": "latest",
+    "flag-icons": "7.6.0",
     "gsap": "latest",
     "lenis": "latest",
     "lucide-react": "latest",
