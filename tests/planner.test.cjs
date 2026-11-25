@@ -42,20 +42,18 @@ test('normalizes fixed and flexible date inputs before generation', () => {
   assert.equal(flexible.arrivalDate, '');
   assert.equal(flexible.departureDate, '');
 });
-test('nationality suggestions require an explicit opt-in and a supported profile', () => {
-  const notOptedIn = { ...p, nationality: 'India' };
-  const plainRequest = itineraryRequestPreferences(notOptedIn);
-  assert.equal(plainRequest.nationalitySuggestions.enabled, false);
-  assert.equal(Object.hasOwn(plainRequest, 'nationality'), false);
-  const optedIn = { ...notOptedIn, useNationalitySuggestions: true, interests: ['Food', 'Nature'] };
-  const request = itineraryRequestPreferences(optedIn);
-  assert.equal(request.nationality, 'India');
-  assert.equal(request.nationalitySuggestions.enabled, true);
-  assert.ok(request.nationalitySuggestions.suggestedInterests.includes('Food'));
-  assert.equal(sampleDraft(optedIn).days[0].items.at(-1).title.startsWith('A taste of Sri Lanka'), true);
-  const nationalityIdeas = sampleDraft({ ...optedIn, interests: ['Nature'] });
-  assert.match(nationalityIdeas.days[1].items.at(-1).title, /Stories of the island/);
-  assert.ok(validatePreferences({ ...p, nationality: 'Other', otherNationality: 'Canadian', useNationalitySuggestions: true }).useNationalitySuggestions);
+test('saved nationality and previous opt-ins do not influence generated itineraries', () => {
+  const plan = { ...p, interests: ['Nature'] };
+  const saved = readPreferences({ ...plan, nationality: 'United Kingdom', useNationalitySuggestions: true });
+  assert.equal(saved.nationality, 'United Kingdom');
+  assert.equal(saved.useNationalitySuggestions, true, 'Existing requests keep their original hash');
+  assert.deepEqual(itineraryRequestPreferences(saved), itineraryRequestPreferences(plan));
+  const request = itineraryRequestPreferences(saved);
+  for (const field of ['nationality', 'otherNationality', 'useNationalitySuggestions', 'nationalitySuggestions']) {
+    assert.equal(Object.hasOwn(request, field), false);
+  }
+  assert.deepEqual(sampleDraft(saved), sampleDraft(plan));
+  assert.deepEqual(validatePreferences({ ...saved, nationality: 'Other', otherNationality: 'Canada' }), {});
   assert.ok(validatePreferences({ ...p, nationality: 'Other' }).otherNationality);
   const previousDraft = { ...p }; delete previousDraft.nationality; delete previousDraft.otherNationality; delete previousDraft.useNationalitySuggestions;
   const restored = readPreferences(previousDraft);
