@@ -197,24 +197,30 @@ test('reviewed knowledge bypasses live search only when coverage is complete', a
   } finally { global.fetch = original; }
 });
 test('discovery validates only the current chapter and migrates previous drafts', () => {
-  const { discoveryErrors, restoreDiscoveryStep, journeyStory } = require('../lib/planner/discovery.ts');
+  const { datesStep, discoveryErrors, flowVersion, restoreDiscoveryStep, reviewStep, travellersStep, journeyStory } = require('../lib/planner/discovery.ts');
   const unfinished = { ...defaults, interests: ['Nature'], budget: '-50' };
   assert.deepEqual(discoveryErrors(unfinished, 0), {}, 'Dates and budget do not block nationality');
   assert.deepEqual(discoveryErrors(unfinished, 1), {}, 'Future budget errors do not block interests');
   assert.deepEqual(discoveryErrors(unfinished, 2), {}, 'Future budget errors do not block pace');
-  assert.ok(discoveryErrors(unfinished, 3).arrivalDate);
-  assert.ok(discoveryErrors(unfinished, 4).budget);
-  assert.ok(discoveryErrors({ ...unfinished, undecided: true, accessibility: 'x'.repeat(601) }, 3).accessibility);
+  const incompleteGroup = { ...unfinished, children: 2, ages: ['6', ''], accessibility: 'x'.repeat(601) };
+  assert.ok(discoveryErrors(incompleteGroup, datesStep).arrivalDate);
+  assert.deepEqual(discoveryErrors({ ...incompleteGroup, undecided: true }, datesStep), {}, 'The dates step accepts incomplete traveller details');
+  assert.deepEqual(Object.keys(discoveryErrors(incompleteGroup, travellersStep)).sort(), ['accessibility', 'ages']);
+  assert.deepEqual(discoveryErrors({ ...unfinished, children: 2, ages: ['6', '9'] }, travellersStep), {}, 'The travellers step ignores dates and optional budget errors');
+  assert.ok(discoveryErrors(unfinished, reviewStep).budget);
   assert.ok(discoveryErrors({ ...unfinished, nationality: 'Other' }, 0).otherNationality);
-  assert.equal(restoreDiscoveryStep(1, undefined), 3, 'Old basics becomes the trip chapter');
-  assert.equal(restoreDiscoveryStep(4, undefined), 4, 'Old review remains review');
-  assert.equal(restoreDiscoveryStep(3, 2), 4, 'Previous budget chapter moves to review');
-  assert.equal(restoreDiscoveryStep(4, 2), 4, 'Previous comforts chapter moves to review');
-  assert.equal(restoreDiscoveryStep(2, 3), 3, 'Previous trip chapter keeps its content');
-  assert.equal(restoreDiscoveryStep(0, 4), 0, 'New drafts open at nationality');
+  assert.equal(restoreDiscoveryStep(1, undefined), datesStep, 'Old basics becomes the dates chapter');
+  assert.equal(restoreDiscoveryStep(4, undefined), reviewStep, 'Old review remains review');
+  assert.equal(restoreDiscoveryStep(3, 2), reviewStep, 'Previous budget chapter moves to review');
+  assert.equal(restoreDiscoveryStep(4, 2), reviewStep, 'Previous comforts chapter moves to review');
+  assert.equal(restoreDiscoveryStep(2, 3), datesStep, 'The previous trip chapter opens at dates');
+  assert.equal(restoreDiscoveryStep(3, 4), datesStep, 'The combined dates and travellers chapter opens at dates');
+  assert.equal(restoreDiscoveryStep(4, 4), reviewStep, 'Version 4 review resumes at review');
+  assert.equal(restoreDiscoveryStep(travellersStep, flowVersion), travellersStep, 'New drafts resume on the separate travellers step');
   assert.equal(journeyStory(unfinished).duration, null, 'Undecided/invalid dates never become a made-up duration');
 });
 test('planner session drafts expire and never contain completed itineraries', () => {
+  const { datesStep, reviewStep } = require('../lib/planner/discovery.ts');
   const { plannerSessionTtl, serializePlannerSession, parsePlannerSession, isPristinePlannerSession } = require('../lib/planner/session.ts');
   const now = 1_800_000_000_000;
   const state = { preferences: p, step: 3, furthest: 3, editing: false, screen: 'form', requestId: null };
@@ -225,8 +231,15 @@ test('planner session drafts expire and never contain completed itineraries', ()
   legacy.step = 4;
   legacy.preferences = { ...p, budget: '100', budgetBasis: 'person' };
   const migrated = parsePlannerSession(JSON.stringify(legacy), now);
-  assert.equal(migrated.step, 4);
+  assert.equal(migrated.step, reviewStep);
   assert.equal(migrated.preferences.budget, '200');
+  const v4 = { ...JSON.parse(raw), flowVersion: 4, step: 3, furthest: 4, editing: true, preferences: { ...p, children: 2, ages: ['6', '9'], accessibility: 'Step-free access' } };
+  const restored = parsePlannerSession(JSON.stringify(v4), now);
+  assert.equal(restored.step, datesStep);
+  assert.equal(restored.furthest, reviewStep);
+  assert.equal(restored.editing, true);
+  assert.deepEqual(restored.preferences.ages, ['6', '9']);
+  assert.equal(restored.preferences.accessibility, 'Step-free access');
   assert.equal(parsePlannerSession(raw, now + plannerSessionTtl), null);
   assert.equal(Object.hasOwn(JSON.parse(raw), 'itinerary'), false);
   assert.equal(isPristinePlannerSession({ preferences: defaults, step: 0, furthest: 0, editing: false, screen: 'form', requestId: null }), true);

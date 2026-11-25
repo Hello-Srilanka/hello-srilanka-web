@@ -1,8 +1,10 @@
 import { dayCount, interests, validatePreferences, type Errors, type Preferences } from './model';
 
-export const discoverySteps = ['Nationality', 'Your interests', 'Your pace', 'Your trip', 'Review'];
+export const discoverySteps = ['Nationality', 'Your interests', 'Your pace', 'Your dates', 'Your travellers', 'Review'];
+export const datesStep = 3;
+export const travellersStep = 4;
 export const reviewStep = discoverySteps.length - 1;
-export const flowVersion = 4;
+export const flowVersion = 5;
 export const moments = [
   { name: 'Nature', title: 'Lose yourself in the green', note: 'Tea hills, trails & fresh air' },
   { name: 'Beaches', title: 'Let the sea set the pace', note: 'Bare feet & salt air' },
@@ -24,17 +26,23 @@ export function discoveryErrors(p: Preferences, step: number): Errors {
   if (step === 0) return validatePreferences(p, 0);
   if (step === 1) return validatePreferences(p, 2);
   if (step === 2) return Object.fromEntries(Object.entries(validatePreferences(p, 3)).filter(([k]) => k === 'pace'));
-  if (step === 3) return { ...validatePreferences(p, 1), ...Object.fromEntries(Object.entries(validatePreferences(p, 3)).filter(([k]) => k === 'accessibility')) };
+  if (step === datesStep || step === travellersStep) {
+    const { adults, children, ages, ...dateErrors } = validatePreferences(p, 1);
+    if (step === datesStep) return dateErrors;
+    const { accessibility } = validatePreferences(p, 3);
+    return Object.fromEntries(Object.entries({ adults, children, ages, accessibility }).filter(([, error]) => error));
+  }
   return validatePreferences(p);
 }
 export function restoreDiscoveryStep(step: unknown, version: unknown) {
   if (!Number.isInteger(step)) return 0;
   const n = step as number;
   if (version === flowVersion) return Math.max(0, Math.min(reviewStep, n));
-  if (version === 3) return [1, 2, 3, reviewStep][n] ?? 0;
-  if (version === 2) return [1, 2, 3, reviewStep, reviewStep, reviewStep][n] ?? 0;
+  if (version === 4) return [0, 1, 2, datesStep, reviewStep][n] ?? 0;
+  if (version === 3) return [1, 2, datesStep, reviewStep][n] ?? 0;
+  if (version === 2) return [1, 2, datesStep, reviewStep, reviewStep, reviewStep][n] ?? 0;
   // Previous flow: welcome, basics, interests, combined style, review.
-  return [1, 3, 1, 2, reviewStep][n] ?? 0;
+  return [1, datesStep, 1, 2, reviewStep][n] ?? 0;
 }
 const feeling: Record<string, string> = {
   Nature: 'Green escapes', Beaches: 'Salt-air days', Wildlife: 'Wild encounters', Adventure: 'A little adventure',

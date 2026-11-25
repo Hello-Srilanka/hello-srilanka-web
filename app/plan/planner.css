@@ -154,7 +154,7 @@
 .review-body .inline-edit{display:inline-flex;margin-left:12px;font-size:14px;color:var(--ocean)}
 @keyframes postcard-appear{from{opacity:.5}to{opacity:1}}
 @media(min-width:1600px){.discovery-content{padding-top:44px}.discovery-progress{margin-bottom:46px}.moment-card{height:225px}.travel-postcard{padding-top:48px}.postcard-photos{height:440px}}
-@media(max-width:1200px) and (min-width:761px){.discovery-content{padding-left:30px;padding-right:30px}.discovery-progress button{gap:5px;font-size:14px}.discovery-progress button>span{width:17px;height:17px;font-size:14px}.moment-grid{grid-template-columns:1fr 1fr}.moment-card{height:170px}.postcard-copy h2{font-size:34px}.postcard-inset{width:53%;height:46%}.postcard-bottom{align-items:start;flex-direction:column;gap:12px}.postcard-bottom>span:last-child{text-align:left}.discovery-content .plan-primary{font-size:14px;gap:12px;padding-left:16px;padding-right:16px}.date-choice-row>label{font-size:14px;gap:7px}.rhythm-heading strong{font-size:16px}}
+@media(max-width:1200px) and (min-width:761px){.discovery-content{padding-left:30px;padding-right:30px}.discovery-progress li{flex-basis:auto}.discovery-progress button{gap:5px;font-size:14px}.discovery-progress button>span{width:17px;height:17px;font-size:14px}.moment-grid{grid-template-columns:1fr 1fr}.moment-card{height:170px}.postcard-copy h2{font-size:34px}.postcard-inset{width:53%;height:46%}.postcard-bottom{align-items:start;flex-direction:column;gap:12px}.postcard-bottom>span:last-child{text-align:left}.discovery-content .plan-primary{font-size:14px;gap:12px;padding-left:16px;padding-right:16px}.date-choice-row>label{font-size:14px;gap:7px}.rhythm-heading strong{font-size:16px}}
 @media(max-width:760px){
   .personalise-details{padding:0 14px}
   .personalise-details .field-grid:not(.budget-grid){grid-template-columns:1fr}
@@ -239,7 +239,7 @@
   .planner-app:has(.discovery-layout) .planner-header{height:52px}
   .planner-app:has(.discovery-layout) .sample-banner{font-size:14px;line-height:1.4;padding:5px 16px}
   .discovery-content{padding:12px 18px 9px}
-  .discovery-progress{margin-bottom:12px}.discovery-progress ol{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));row-gap:8px}.discovery-progress li{grid-column:span 2}.discovery-progress li:nth-child(n+4){grid-column:span 3}.discovery-progress button{flex-direction:row;gap:4px;min-height:24px}.discovery-progress button>span{display:none}.discovery-progress li{padding-bottom:5px}.discovery-progress>div{display:none}
+  .discovery-progress{margin-bottom:12px}.discovery-progress ol{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));row-gap:8px}.discovery-progress button{flex-direction:row;gap:4px;min-height:24px}.discovery-progress button>span{display:none}.discovery-progress li{padding-bottom:5px}.discovery-progress>div{display:none}
   .discovery-intro{margin-bottom:10px}.discovery-intro>.eyebrow{display:none}.discovery-intro h1{font-size:29px;line-height:1.12}.discovery-intro>p:last-child{font-size:14px;line-height:1.45;margin-top:6px}
   .moment-grid{grid-template-columns:1fr 1fr;gap:8px}.moment-card{height:clamp(85px,14dvh,125px)}
   .moment-caption{bottom:9px;left:9px;right:9px;gap:4px}.moment-caption>strong{font-size:17px}.moment-caption>small{font-size:14px}.moment-caption>span{display:none}.moment-card .selection-mark{width:19px;height:19px;top:6px;right:6px}
