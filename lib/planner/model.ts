@@ -89,14 +89,14 @@ export function travellers(p: Preferences) { return `${p.adults} adult${p.adults
 export function money(amount: number, currency: string) { return new Intl.NumberFormat('en-GB', { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount); }
 export function groupBudget(p: Preferences) { return p.budget ? Number(p.budget) : null; }
 export type Errors = Record<string, string>;
-export function validatePreferences(p: Preferences, step?: number): Errors {
+export function validatePreferences(p: Preferences, step?: number, { allowPastArrival = false } = {}): Errors {
   const e: Errors = {};
   if (step === undefined || step === 1) {
     if (!p.undecided) {
       const validDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && Number.isFinite(Date.parse(s)) && new Date(s).toISOString().slice(0, 10) === s;
       if (!validDate(p.arrivalDate)) e.arrivalDate = 'Choose a valid arrival date.';
       if (!validDate(p.departureDate)) e.departureDate = 'Choose a valid departure date.';
-      if (!e.arrivalDate && p.arrivalDate < new Date().toISOString().slice(0, 10)) e.arrivalDate = 'Choose today or a future arrival date.';
+      if (!allowPastArrival && !e.arrivalDate && p.arrivalDate < new Date().toISOString().slice(0, 10)) e.arrivalDate = 'Choose today or a future arrival date.';
       if (!e.departureDate && !e.arrivalDate && dayCount(p) < 1) e.departureDate = 'Departure must be on or after arrival.';
       if (p.arrivalDate === p.departureDate && p.arrivalTime && p.departureTime && p.arrivalTime >= p.departureTime) e.departureTime = 'Departure must be after arrival.';
     }
@@ -153,5 +153,5 @@ export type Day = {
   stay: { name: string; description: string; sourceId: string | null; cost: Cost } | null;
 };
 export type Draft = { title: string; summary: string; assumptions: string[]; caveats: string[]; conflicts: string[]; days: Day[] };
-export type Itinerary = Draft & { version: 1; id: string; mode: 'sample' | 'live'; generatedAt: string; preferences: Preferences; sources: Source[]; knownCost: number | null; unknownCosts: string[] };
+export type Itinerary = Draft & { version: 1; id: string; mode: 'sample' | 'live'; generatedAt: string; preferences: Preferences; sources: Source[]; knownCost: number | null; unknownCosts: string[]; revision?: { originalId: string; dayNumber: number | null } };
 export const unknownCost = (): Cost => ({ amount: null, basis: 'Check price and availability', sourceIds: [] });

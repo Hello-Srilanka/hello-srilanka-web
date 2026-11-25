@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { getStore } from '@netlify/blobs';
 import type { Itinerary, Preferences } from './model';
+import type { RevisionPlan } from './revision';
 
 export type PlannerJob = {
   hash: string;
@@ -9,6 +10,7 @@ export type PlannerJob = {
   stage: string;
   status: 'queued' | 'running' | 'complete' | 'failed';
   preferences: Preferences;
+  revision?: RevisionPlan;
   result?: Itinerary;
   error?: string;
 };

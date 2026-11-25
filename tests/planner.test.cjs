@@ -89,6 +89,79 @@ test('sample supports every duration with continuous overnights and no fabricate
     assert.equal(trip.days.at(-1).endLocation, p.departure);
   }
 });
+test('sample revisions can revise one day or the whole trip without overwriting the original', () => {
+  const { readRevisionOptions, revisionPreferences, reviseSample } = require('../lib/planner/revision.ts');
+  const original = finish(sampleDraft(p));
+  const options = readRevisionOptions({ dayNumber: 2, goal: 'interests', interest: 'Wildlife', note: '', budget: '' });
+  const revised = reviseSample({ original, options, ownerId: null }, revisionPreferences(original, options), 'day-revision');
+  assert.deepEqual(revised.revision, { originalId: original.id, dayNumber: 2 });
+  assert.deepEqual(revised.days.filter(day => day.number !== 2), original.days.filter(day => day.number !== 2));
+  assert.deepEqual(revised.days[1].stay, original.days[1].stay);
+  assert.match(revised.days[1].items.find(item => item.kind === 'activity').title, /wildlife/);
+  assert.deepEqual(revised.preferences, original.preferences);
+
+  const whole = { ...options, dayNumber: null, goal: 'relaxed', interest: '' };
+  const trip = reviseSample({ original, options: whole, ownerId: null }, revisionPreferences(original, whole), 'trip-revision');
+  assert.equal(trip.preferences.pace, 'Relaxed');
+  assert.equal(original.preferences.pace, 'Balanced');
+  assert.equal(trip.days.length, original.days.length);
+  assert.equal(trip.revision.dayNumber, null);
+  assert.throws(() => readRevisionOptions({ ...options, budget: '200' }), /whole trip/);
+  assert.throws(() => revisionPreferences(original, { ...options, dayNumber: 21 }), /day in this itinerary/);
+});
+test('one-day revisions reject changes to the overnight stay and invalid routes', () => {
+  const { finalizeRevision } = require('../lib/planner/revision.ts');
+  const original = finish(sampleDraft(p));
+  const plan = { original, options: { dayNumber: 2, goal: 'custom', interest: '', note: 'Change the activity', budget: '' }, ownerId: null };
+  const changedHotel = structuredClone(original.days[1]);
+  changedHotel.stay.name = 'Different hotel';
+  assert.throws(() => finalizeRevision(plan, { day: changedHotel, summary: original.summary }, p, [], 'new-id'), /same start, end and overnight stay/);
+  const broken = structuredClone(original.days[1]);
+  broken.items[0].from = 'Wrong starting point';
+  assert.throws(() => finalizeRevision(plan, { day: broken, summary: original.summary }, p, [], 'new-id'), /disconnected/);
+});
+test('live revisions keep source IDs distinct and apply the requested scope and budget', async () => {
+  const { revisionPreferences } = require('../lib/planner/revision.ts');
+  const { reviseLiveItinerary } = require('../lib/planner/generate.ts');
+  const draft = sampleDraft(p);
+  for (const day of draft.days) {
+    if (day.stay) day.stay.sourceId = source.id;
+    for (const item of day.items) if (item.kind === 'activity') item.sourceIds = [source.id];
+  }
+  const original = finish(draft, p, [source], 'live');
+  const calls = [];
+  const originalFetch = global.fetch;
+  try {
+    global.fetch = async (_, init) => {
+      const body = JSON.parse(init.body);
+      calls.push(body);
+      if (body.tools) return Response.json({ status: 'completed', output: [
+        { type: 'web_search_call', status: 'completed', action: { sources: [{ url: 'https://example.com/new-activity', title: 'New activity' }] } },
+        { type: 'message', content: [{ type: 'output_text', text: 'A supported new activity', annotations: [{ type: 'url_citation', url: 'https://example.com/new-activity' }] }] },
+      ] });
+      const next = structuredClone(draft);
+      const item = next.days[1].items.find(value => value.kind === 'activity');
+      item.title = 'Revised walking activity';
+      item.sourceIds = ['s2'];
+      next.summary = 'A revised trip with a walk on day two.';
+      const output = JSON.parse(body.input).repair?.dayNumber ? { day: next.days[1], summary: next.summary } : next;
+      return Response.json({ status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(output) }] }] });
+    };
+    const options = { dayNumber: 2, goal: 'custom', interest: '', note: 'Include a walk', budget: '' };
+    const plan = { original, options, ownerId: null };
+    const telemetry = { requestId: 'test-revision', record: () => {} };
+    const oneDay = await reviseLiveItinerary(plan, revisionPreferences(original, options), 'revised-day', AbortSignal.timeout(1000), telemetry, async () => {});
+    assert.deepEqual(oneDay.sources.map(item => item.id), ['s1', 's2']);
+    assert.deepEqual(oneDay.days[0], original.days[0]);
+    assert.match(oneDay.summary, /walk on day two/);
+    assert.equal(JSON.parse(calls[1].input).repair.dayNumber, 2);
+    const wholeTrip = { ...plan, options: { ...options, dayNumber: null, budget: '500' } };
+    const whole = await reviseLiveItinerary(wholeTrip, revisionPreferences(original, wholeTrip.options), 'revised-all', AbortSignal.timeout(1000), telemetry, async () => {});
+    assert.equal(whole.preferences.budget, '500');
+    assert.equal(whole.revision.dayNumber, null);
+    assert.equal(JSON.parse(calls[3].input).revision.currentPlan.length, original.days.length);
+  } finally { global.fetch = originalFetch; }
+});
 test('rejects broken overnight chain, count and duplicate activities', () => {
   let d = sampleDraft(p); d.days.pop(); assert.throws(() => finish(d), /trip length/);
   d = sampleDraft(p); d.days[1].startLocation = 'Wrong place'; assert.throws(() => finish(d), /connect/);

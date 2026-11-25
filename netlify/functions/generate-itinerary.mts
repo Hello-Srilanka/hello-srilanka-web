@@ -1,5 +1,5 @@
 import { getPlannerJob, claimPlannerJob, updatePlannerJob, validPlannerDispatchToken } from '../../lib/planner/async-job';
-import { generateLiveItinerary } from '../../lib/planner/generate';
+import { generateLiveItinerary, reviseLiveItinerary } from '../../lib/planner/generate';
 import type { AiCallMetrics } from '../../lib/planner/provider';
 
 const idPattern = /^[a-f0-9-]{36}$/;
@@ -28,8 +28,11 @@ export default async function generateItinerary(request: Request) {
       job = { ...job!, stage: value };
       await updatePlannerJob(id, job);
     };
-    const result = await generateLiveItinerary(job.preferences, id, AbortSignal.timeout(12 * 60 * 1000), telemetry, stage);
-    job = { ...job, status: 'complete', stage: 'Your itinerary is ready', result: result.itinerary };
+    const signal = AbortSignal.timeout(12 * 60 * 1000);
+    const result = job.revision
+      ? await reviseLiveItinerary(job.revision, job.preferences, id, signal, telemetry, stage)
+      : (await generateLiveItinerary(job.preferences, id, signal, telemetry, stage)).itinerary;
+    job = { ...job, status: 'complete', stage: 'Your itinerary is ready', result };
     await updatePlannerJob(id, job);
   } catch (error) {
     const message = error instanceof Error && /timeout|abort/i.test(error.name + error.message)

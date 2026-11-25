@@ -2,8 +2,28 @@ import type { Preferences, Itinerary, Draft } from './model';
 import { DayValidationError, finalize, mergeDayRepair } from './validation';
 import { compose, repairDay, research, type AiTelemetry } from './provider';
 import { loadKnowledge, type KnowledgeEvidence } from '../knowledge/retrieval';
+import { finalizeRevision, type RevisionPlan } from './revision';
 
 export type GenerationDetails = { itinerary: Itinerary; knowledge: KnowledgeEvidence; repairStages: ('day' | 'full')[] };
+
+export async function reviseLiveItinerary(plan: RevisionPlan, preferences: Preferences, id: string, signal: AbortSignal, telemetry: AiTelemetry, stage: (message: string) => Promise<void>): Promise<Itinerary> {
+  await stage('Researching the requested changes');
+  const evidence = await research(preferences, signal, telemetry, undefined, 'optimized', plan);
+  const dayNumber = plan.options.dayNumber;
+  await stage(dayNumber === null ? 'Revising the whole trip' : `Revising Day ${dayNumber}`);
+  let candidate: unknown = dayNumber === null
+    ? await compose(preferences, evidence, signal, undefined, telemetry, plan)
+    : await repairDay(preferences, evidence, plan.original, dayNumber, '', signal, telemetry, plan);
+  await stage('Checking connections, time and costs');
+  try { return finalizeRevision(plan, candidate, preferences, evidence.sources, id); }
+  catch (error) {
+    if (!(error instanceof DayValidationError)) throw error;
+    candidate = dayNumber === null
+      ? await compose(preferences, evidence, signal, { draft: candidate, validationError: error.message }, telemetry, plan)
+      : await repairDay(preferences, evidence, plan.original, dayNumber, error.message, signal, telemetry, plan);
+    return finalizeRevision(plan, candidate, preferences, evidence.sources, id);
+  }
+}
 
 export async function generateLiveItinerary(
   preferences: Preferences,

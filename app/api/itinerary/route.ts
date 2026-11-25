@@ -6,7 +6,8 @@ import { readPreferences, validatePreferences, type Itinerary } from '@/lib/plan
 import { finalize } from '@/lib/planner/validation';
 import { sampleDraft } from '@/lib/planner/sample';
 import { type AiCallMetrics } from '@/lib/planner/provider';
-import { generateLiveItinerary } from '@/lib/planner/generate';
+import { generateLiveItinerary, reviseLiveItinerary } from '@/lib/planner/generate';
+import { readRevisionOptions, revisionPreferences, reviseSample, type RevisionPlan } from '@/lib/planner/revision';
 import { createClient } from '@/lib/supabase/server';
 import { supabaseConfigured } from '@/lib/supabase/config';
 import { asyncPlannerAvailable, createPlannerJob, getPlannerJob, plannerDispatchToken, plannerJobTtl, type PlannerJob } from '@/lib/planner/async-job';
@@ -16,7 +17,7 @@ export const maxDuration = 240;
 export const dynamic = 'force-dynamic';
 const directory = process.env.ITINERARY_CACHE_DIR || join(tmpdir(), 'hellosrilanka-itineraries-v1');
 const ttl = 24 * 60 * 60 * 1000;
-type Job = { hash: string; started: number; stage: string; result?: Itinerary; error?: string };
+type Job = { hash: string; started: number; stage: string; result?: Itinerary; error?: string; revisionOwnerId?: string | null; originalToSave?: Itinerary };
 const sampleMode = () => process.env.ITINERARY_MODE === 'sample' || !process.env.OPENAI_API_KEY;
 const idPattern = /^[a-f0-9-]{36}$/;
 const rates = new Map<string, { count: number; reset: number }>();
@@ -28,6 +29,34 @@ async function save(id: string, job: Job) {
 async function getJob(id: string): Promise<Job | null> {
   try { return JSON.parse(await readFile(join(directory, `${id}.json`), 'utf8')); } catch { return null; }
 }
+async function getAccount() {
+  if (!supabaseConfigured()) return null;
+  const client = await createClient();
+  const { data } = await client.auth.getClaims();
+  return data?.claims?.sub ? { client, userId: data.claims.sub } : null;
+}
+function sameOrigin(request: Request) {
+  const origin = request.headers.get('origin');
+  try { return !origin || new URL(origin).host === request.headers.get('host'); }
+  catch { return false; }
+}
+async function revisionOriginal(originalId: string, proof: unknown, account: Awaited<ReturnType<typeof getAccount>>) {
+  if (account) {
+    const { data } = await account.client.from('itinerary_history').select('itinerary')
+      .eq('user_id', account.userId).eq('id', originalId).maybeSingle();
+    const saved = data?.itinerary as Itinerary | undefined;
+    if (saved?.id === originalId && saved.version === 1) return { itinerary: saved, saved: true };
+  }
+  if (typeof proof !== 'string' || !/^[0-9a-f]{64}$/.test(proof)) return null;
+  // Guests can revise a cached result only when they already hold its full contents.
+  const background = asyncPlannerAvailable() ? await getPlannerJob(originalId) : null;
+  const local = background ? null : await getJob(originalId);
+  if ((background && Date.now() - background.createdAt > plannerJobTtl) || (local && Date.now() - local.started > ttl)) return null;
+  const owner = background?.revision?.ownerId ?? local?.revisionOwnerId;
+  if (owner && owner !== account?.userId) return null;
+  const result = background?.result ?? local?.result;
+  return result && createHash('sha256').update(JSON.stringify(result)).digest('hex') === proof ? { itinerary: result, saved: false } : null;
+}
 export async function GET(request: Request) {
   const id = new URL(request.url).searchParams.get('id');
   if (!id) return Response.json({ mode: sampleMode() ? 'sample' : 'live' }, { headers: { 'Cache-Control': 'no-store' } });
@@ -36,12 +65,15 @@ export async function GET(request: Request) {
   try { job = await getPlannerJob(id); }
   catch { return Response.json({ error: 'Planner progress is temporarily unavailable. Please retry.' }, { status: 503 }); }
   if (!job) return Response.json({ error: 'This planning request could not be found. Start again from review.' }, { status: 404 });
+  if (job.revision?.ownerId && (await getAccount().catch(() => null))?.userId !== job.revision.ownerId) {
+    return Response.json({ error: 'This revision could not be found.' }, { status: 404 });
+  }
   if (Date.now() - job.createdAt > plannerJobTtl) return Response.json({ error: 'This planning request has expired. Start again from review.' }, { status: 410 });
   if (job.status === 'running' && job.startedAt && Date.now() - job.startedAt > 14 * 60 * 1000) {
     return Response.json({ error: 'Planning took too long. Start a new request from review.', terminal: true }, { headers: { 'Cache-Control': 'no-store' } });
   }
   let history: 'guest' | 'saved' | 'failed' = 'guest';
-  if (job.result && supabaseConfigured()) {
+  if (job.result && !job.revision && supabaseConfigured()) {
     try {
       const client = await createClient();
       const { data } = await client.auth.getClaims();
@@ -55,16 +87,16 @@ export async function GET(request: Request) {
       }
     } catch (error) { history = 'failed'; console.error('Could not save itinerary history:', error); }
   }
-  return Response.json({ status: job.status, stage: job.stage, result: job.result, error: job.error, history }, { headers: { 'Cache-Control': 'no-store' } });
+  return Response.json({ status: job.status, stage: job.stage, result: job.result, error: job.error, history,
+    ...(job.revision ? { canSave: Boolean(job.revision.ownerId), terminal: job.status === 'failed' } : {}),
+  }, { headers: { 'Cache-Control': 'no-store' } });
 }
 export async function POST(request: Request) {
-  const origin = request.headers.get('origin');
   // Next may internally normalize request.url to localhost; compare the public Host.
-  if (origin) {
-    try { if (new URL(origin).host !== request.headers.get('host')) throw new Error(); }
-    catch { return Response.json({ error: 'Please generate from the HelloSriLanka planner.' }, { status: 403 }); }
-  }
+  if (!sameOrigin(request)) return Response.json({ error: 'Please generate from the HelloSriLanka planner.' }, { status: 403 });
   let id: string, p: ReturnType<typeof readPreferences>;
+  let revision: RevisionPlan | undefined;
+  let account: Awaited<ReturnType<typeof getAccount>> = null;
   try {
     if (Number(request.headers.get('content-length')) > 14000) throw new Error('The request is too large.');
     const text = await request.text();
@@ -72,16 +104,28 @@ export async function POST(request: Request) {
     const body = JSON.parse(text);
     id = body.id;
     if (typeof id !== 'string' || !idPattern.test(id)) throw new Error('Invalid request ID. Start again from review.');
-    p = readPreferences(body.preferences);
-    const errors = validatePreferences(p);
+    if (body.revision !== undefined) {
+      const { originalId, proof, options: rawOptions } = body.revision ?? {};
+      if (typeof originalId !== 'string' || !idPattern.test(originalId) || originalId === id) throw new Error('Choose an itinerary to revise.');
+      const options = readRevisionOptions(rawOptions);
+      account = await getAccount().catch(() => null);
+      const original = await revisionOriginal(originalId, proof, account);
+      if (!original) return Response.json({ error: 'The original itinerary is no longer available. Open it again from your saved trips.' }, { status: 404 });
+      if (original.itinerary.mode === 'live' && sampleMode()) return Response.json({ error: 'Live research is temporarily unavailable for this itinerary.' }, { status: 503 });
+      const base = { ...original.itinerary, preferences: readPreferences(original.itinerary.preferences) };
+      revision = { original: base, options, ownerId: account?.userId ?? null, saveOriginal: Boolean(account && !original.saved) };
+      p = revisionPreferences(base, options);
+    } else p = readPreferences(body.preferences);
+    const errors = validatePreferences(p, undefined, { allowPastArrival: Boolean(revision) });
     if (Object.keys(errors).length) return Response.json({ error: Object.values(errors).join(' '), fields: errors }, { status: 400 });
   } catch (e) { return Response.json({ error: e instanceof Error ? e.message : 'Invalid request.' }, { status: 400 }); }
-  const mode = sampleMode() ? 'sample' : 'live';
-  const hash = createHash('sha256').update(JSON.stringify(p) + mode).digest('hex');
+  const mode = revision?.original.mode ?? (sampleMode() ? 'sample' : 'live');
+  const hash = createHash('sha256').update(JSON.stringify(p) + mode + (revision ? JSON.stringify([revision.original.id, revision.options, revision.ownerId]) : '')).digest('hex');
   if (mode === 'live' && asyncPlannerAvailable()) {
     let job: PlannerJob | null;
     try { job = await getPlannerJob(id); }
     catch { return Response.json({ error: 'Trip storage is temporarily unavailable. Please retry.' }, { status: 503 }); }
+    if (job?.revision?.ownerId && job.revision.ownerId !== account?.userId) return Response.json({ error: 'This revision could not be found.' }, { status: 404 });
     if (job && job.hash !== hash) return Response.json({ error: 'Preferences changed. Return to review before generating again.' }, { status: 409 });
     if (job && Date.now() - job.createdAt > plannerJobTtl) return Response.json({ error: 'This planning request has expired. Start again from review.' }, { status: 410 });
     if (!job) {
@@ -91,7 +135,7 @@ export async function POST(request: Request) {
       const rate = rates.get(client) || { count: 0, reset: now + 3600000 };
       rate.count++; rates.set(client, rate);
       if (rate.count > 10) return Response.json({ error: 'You have reached the hourly planning limit. Please try again later.' }, { status: 429 });
-      const initial: PlannerJob = { hash, createdAt: now, stage: 'Waiting for your planner', status: 'queued', preferences: p };
+      const initial: PlannerJob = { hash, createdAt: now, stage: 'Waiting for your planner', status: 'queued', preferences: p, ...(revision ? { revision } : {}) };
       try { job = (await createPlannerJob(id, initial)) ? initial : await getPlannerJob(id); }
       catch { return Response.json({ error: 'Trip storage is temporarily unavailable. Please retry.' }, { status: 503 }); }
       if (!job) return Response.json({ error: 'Trip storage is temporarily unavailable. Please retry.' }, { status: 503 });
@@ -99,14 +143,7 @@ export async function POST(request: Request) {
     }
     return Response.json({ mode, status: job.status, stage: job.stage, dispatchToken: plannerDispatchToken(id, hash) }, { status: 202, headers: { 'Cache-Control': 'no-store' } });
   }
-  let account: { client: Awaited<ReturnType<typeof createClient>>; userId: string } | null = null;
-  if (supabaseConfigured()) {
-    try {
-      const client = await createClient();
-      const { data } = await client.auth.getClaims();
-      if (data?.claims?.sub) account = { client, userId: data.claims.sub };
-    } catch { /* Guest planning remains available if account lookup fails. */ }
-  }
+  if (!revision) account = await getAccount().catch(() => null);
   await mkdir(directory, { recursive: true, mode: 0o700 });
   // Completed responses and leases survive process restarts. Remove expired records.
   for (const name of await readdir(directory)) {
@@ -115,7 +152,8 @@ export async function POST(request: Request) {
     try { if (Date.now() - (await stat(file)).mtimeMs > ttl) await unlink(file); } catch { /* Another request may have removed it. */ }
   }
   let owner = false;
-  let job: Job = { hash, started: Date.now(), stage: 'Checking your preferences' };
+  let job: Job = { hash, started: Date.now(), stage: 'Checking your preferences', ...(revision ? { revisionOwnerId: revision.ownerId } : {}),
+    ...(revision?.saveOriginal ? { originalToSave: revision.original } : {}) };
   try {
     await writeFile(join(directory, `${id}.json`), JSON.stringify(job), { flag: 'wx', mode: 0o600 });
     owner = true;
@@ -123,6 +161,7 @@ export async function POST(request: Request) {
     if ((e as NodeJS.ErrnoException).code !== 'EEXIST') return Response.json({ error: 'Trip storage is temporarily unavailable. Your answers are safe on this device.' }, { status: 503 });
     const existing = await getJob(id);
     if (!existing) return Response.json({ error: 'Your request is being saved. Please retry.' }, { status: 503 });
+    if (existing.revisionOwnerId && existing.revisionOwnerId !== account?.userId) return Response.json({ error: 'This revision could not be found.' }, { status: 404 });
     if (existing.hash !== hash) return Response.json({ error: 'Preferences changed. Return to review before generating again.' }, { status: 409 });
     job = existing;
   }
@@ -157,7 +196,12 @@ export async function POST(request: Request) {
         };
         try {
           const signal = AbortSignal.timeout(200000);
-          if (mode === 'sample') {
+          if (revision) {
+            if (mode === 'sample') {
+              await stage('Preparing your sample revision');
+              job.result = reviseSample(revision, p, id);
+            } else job.result = await reviseLiveItinerary(revision, p, id, signal, telemetry, stage);
+          } else if (mode === 'sample') {
             await stage('Preparing your sample itinerary');
             await stage('Checking days, connections and cost estimates');
             job.result = finalize(sampleDraft(p), p, [], id, mode);
@@ -180,7 +224,7 @@ export async function POST(request: Request) {
       }
       if (job.result) {
         let history: 'guest' | 'saved' | 'failed' = 'guest';
-        if (account) {
+        if (account && !revision) {
           try {
             const { error } = await account.client.from('itinerary_history').upsert({
               user_id: account.userId,
@@ -197,7 +241,7 @@ export async function POST(request: Request) {
             console.error('Could not save itinerary history:', error);
           }
         }
-        send({ result: job.result, history });
+        send({ result: job.result, history, ...(revision ? { canSave: Boolean(revision.ownerId) } : {}) });
       }
       else send({ error: job.error || 'This request stopped before it finished. You can safely retry now.', terminal: true });
       if (connected) { try { controller.close(); } catch { /* Client disconnected. */ } }
@@ -205,4 +249,37 @@ export async function POST(request: Request) {
     cancel() { connected = false; },
   });
   return new Response(stream, { headers: { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no' } });
+}
+
+export async function PUT(request: Request) {
+  if (!sameOrigin(request)) return Response.json({ error: 'Please save from the HelloSriLanka planner.' }, { status: 403 });
+  let id: string;
+  try {
+    const body = await request.text();
+    if (body.length > 512) throw new Error();
+    ({ id } = JSON.parse(body));
+    if (typeof id !== 'string' || !idPattern.test(id)) throw new Error();
+  } catch { return Response.json({ error: 'Choose a completed revision.' }, { status: 400 }); }
+  try {
+    const account = await getAccount();
+    if (!account) return Response.json({ error: 'Sign in to save the revision to your account.' }, { status: 401 });
+    const background = asyncPlannerAvailable() ? await getPlannerJob(id) : null;
+    const local = background ? null : await getJob(id);
+    if ((background && Date.now() - background.createdAt > plannerJobTtl) || (local && Date.now() - local.started > ttl)) {
+      return Response.json({ error: 'This revision has expired. Generate a new preview.' }, { status: 410 });
+    }
+    const result = background?.result ?? local?.result;
+    const owner = background?.revision?.ownerId ?? local?.revisionOwnerId;
+    if (owner !== account.userId || !result?.revision || result.id !== id) return Response.json({ error: 'This revision could not be found or has expired.' }, { status: 404 });
+    const original = background?.revision?.saveOriginal ? background.revision.original : local?.originalToSave;
+    const versions = original ? [original, result] : [result];
+    const rows = versions.map(itinerary => {
+      const suffix = !itinerary.revision ? '' : itinerary.revision.dayNumber === null ? ' · Whole-trip revision' : ` · Day ${itinerary.revision.dayNumber} revision`;
+      return { user_id: account.userId, id: itinerary.id, title: itinerary.title.trim().slice(0, 200 - suffix.length) + suffix,
+        mode: itinerary.mode, generated_at: itinerary.generatedAt, itinerary };
+    });
+    const { error } = await account.client.from('itinerary_history').upsert(rows, { onConflict: 'user_id,id', ignoreDuplicates: true }).abortSignal(AbortSignal.timeout(10000));
+    if (error) throw error;
+    return Response.json({ id }, { headers: { 'Cache-Control': 'no-store' } });
+  } catch { return Response.json({ error: 'Could not save this revision yet. Please try saving again.' }, { status: 503 }); }
 }
