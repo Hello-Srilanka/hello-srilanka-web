@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Search, X } from 'lucide-react';
 import { countryFlag, otherCountries } from '@/lib/planner/countries';
-import { nationalityProfile, supportedNationalities } from '@/lib/planner/nationality';
+import { supportedNationalities } from '@/lib/planner/nationality';
 import type { Errors, Preferences } from '@/lib/planner/model';
 
 type Props = {
@@ -17,7 +17,6 @@ export default function NationalityStep({ p, errors, update }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const otherButtonRef = useRef<HTMLButtonElement>(null);
-  const profile = nationalityProfile(p.nationality);
   const selectedOther = otherCountries.find(country => country.name === p.otherNationality);
   const matches = otherCountries.filter(country => country.name.toLowerCase().includes(query.trim().toLowerCase()) || country.code.toLowerCase() === query.trim().toLowerCase()).slice(0, 12);
 
@@ -36,11 +35,6 @@ export default function NationalityStep({ p, errors, update }: Props) {
     };
   }, [searchOpen]);
 
-  function chooseNationality(value: string) {
-    update('nationality', value);
-    update('useNationalitySuggestions', false);
-  }
-
   function closeSearch() {
     setSearchOpen(false);
     setQuery('');
@@ -49,7 +43,6 @@ export default function NationalityStep({ p, errors, update }: Props) {
   function chooseOther(name: string) {
     update('nationality', 'Other');
     update('otherNationality', name);
-    update('useNationalitySuggestions', false);
     closeSearch();
   }
 
@@ -58,7 +51,7 @@ export default function NationalityStep({ p, errors, update }: Props) {
       <legend className="sr-only">Choose your nationality</legend>
       <div className="nationality-grid">
         {supportedNationalities.map(country => <label key={country.code} className={`nationality-card ${p.nationality === country.name ? 'selected' : ''}`}>
-          <input type="radio" name="nationality" value={country.name} checked={p.nationality === country.name} onChange={() => chooseNationality(country.name)} aria-label={country.name} />
+          <input type="radio" name="nationality" value={country.name} checked={p.nationality === country.name} onChange={() => update('nationality', country.name)} aria-label={country.name} />
           <span className="nationality-flag" aria-hidden="true">{countryFlag(country.code)}</span><strong>{country.name}</strong><span className="nationality-check">{p.nationality === country.name && <Check size={15} />}</span>
         </label>)}
         <button ref={otherButtonRef} type="button" id="otherNationality" className={`nationality-card nationality-other ${p.nationality === 'Other' ? 'selected' : ''}`} aria-haspopup="dialog" aria-pressed={p.nationality === 'Other'} aria-describedby={errors.otherNationality ? 'otherNationality-error' : undefined} onClick={() => { setQuery(''); setSearchOpen(true); }}>
@@ -76,11 +69,8 @@ export default function NationalityStep({ p, errors, update }: Props) {
       <div className="nationality-results" id="country-results" aria-label="Matching countries">
         {matches.length ? matches.map(country => <button type="button" key={country.code} onClick={() => chooseOther(country.name)}><span aria-hidden="true">{country.flag}</span>{country.name}</button>) : <p>No matching country found.</p>}
       </div>
-      <p className="field-hint">Activity suggestions are available for the five countries shown on the planner.</p>
     </dialog>}
 
-    {profile && <div className="nationality-suggestion"><p>Popular ideas for visitors from {p.nationality}: {profile.ideas} </p><label className="check-row"><input id="useNationalitySuggestions" type="checkbox" checked={p.useNationalitySuggestions} onChange={event => update('useNationalitySuggestions', event.target.checked)} /> Include these ideas when planning my itinerary</label>{errors.useNationalitySuggestions && <p className="field-error" id="useNationalitySuggestions-error">{errors.useNationalitySuggestions}</p>}</div>}
-
-    <label className="nationality-decline"><input type="radio" name="nationality" value="Prefer not to say" checked={p.nationality === 'Prefer not to say'} onChange={() => chooseNationality('Prefer not to say')} /> Prefer not to say</label>
+    <label className="nationality-decline"><input type="radio" name="nationality" value="Prefer not to say" checked={p.nationality === 'Prefer not to say'} onChange={() => update('nationality', 'Prefer not to say')} /> Prefer not to say</label>
   </div>;
 }

@@ -81,13 +81,16 @@ export default function PlanningForm({ p, step, furthest, editing, errors, updat
         {step === personaliseStep && <div className="question-stack personalise-fields">
           <div className="budget-chapter">
             <div className="field-grid budget-grid">
-              <Field name="budget" label="Total budget for everyone (optional)" error={errors.budget} hint="Leave blank if undecided. Covers your trip in Sri Lanka; international flights are excluded.">
+              <Field name="budget" label="Total budget for everyone (optional)">
                 <input {...props('budget')} aria-describedby={errors.budget ? 'budget-hint budget-error' : 'budget-hint'} inputMode="decimal" type="text" placeholder="No budget yet" value={p.budget} maxLength={12} onChange={e => update('budget', e.target.value)} />
               </Field>
-              <Field name="currency" label="Currency" error={errors.currency}>
+              <Field name="currency" label="Currency">
                 <select {...props('currency')} value={p.currency} onChange={e => update('currency', e.target.value)}>{currencies.map(c => <option key={c}>{c}</option>)}</select>
               </Field>
             </div>
+            <p className="field-hint" id="budget-hint">Leave blank if undecided. Covers your trip in Sri Lanka; international flights are excluded.</p>
+            {errors.budget && <p className="field-error" id="budget-error">{errors.budget}</p>}
+            {errors.currency && <p className="field-error" id="currency-error">{errors.currency}</p>}
             {budgetLabel && <p className="field-hint">Group target: {budgetLabel}.</p>}
           </div>
           <div className="field-grid">
@@ -109,7 +112,6 @@ export default function PlanningForm({ p, step, furthest, editing, errors, updat
           </div>
           <ReviewBlock title="Your nationality" edit={() => go(0)}>
             <p>{p.nationality === 'Other' ? p.otherNationality : p.nationality === 'Prefer not to say' || !p.nationality ? 'Not provided' : p.nationality}</p>
-            {p.useNationalitySuggestions && <p>Include nationality-based activity ideas</p>}
           </ReviewBlock>
           <ReviewBlock title="Your interests & pace" edit={() => go(1)}>
             <div className="review-tags">{p.interests.map(i => <span key={i}>{i}</span>)}</div>
