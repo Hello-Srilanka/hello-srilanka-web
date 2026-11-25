@@ -7,16 +7,16 @@ export const personaliseStep = 5;
 export const reviewStep = discoverySteps.length - 1;
 export const flowVersion = 6;
 export const moments = [
-  { name: 'Nature', title: 'Lose yourself in the green', note: 'Tea hills, trails & fresh air' },
-  { name: 'Beaches', title: 'Let the sea set the pace', note: 'Bare feet & salt air' },
-  { name: 'Wildlife', title: 'Meet the wilder island', note: 'Wildlife & open landscapes' },
-  { name: 'Scenic journeys', title: 'Watch the hills roll by', note: 'The journey is the moment' },
-  { name: 'Food', title: 'Follow the local flavour', note: 'Markets, kitchens & good food' },
-  { name: 'Culture', title: 'Step into another story', note: 'Heritage, temples & old towns' },
-  { name: 'Adventure', title: 'Find your next rush', note: 'Surf, hike & head outdoors' },
-  { name: 'Local life', title: 'Get to know the everyday', note: 'People, places & small discoveries' },
-  { name: 'Nightlife', title: 'Stay out a little longer', note: 'Music & evenings together' },
-  { name: 'Wellness', title: 'Make room to breathe', note: 'Quiet moments & a little reset' },
+  { name: 'Nature', note: 'Tea hills, trails & fresh air', cardImage: '/images/nuwara-tea-country-1200.webp' },
+  { name: 'Beaches', note: 'Bare feet & salt air', cardImage: '/images/arugam-fishing-boats-1200.webp' },
+  { name: 'Wildlife', note: 'Wildlife & open landscapes', cardImage: '/images/interest-wildlife.webp' },
+  { name: 'Scenic journeys', note: 'The journey is the moment', cardImage: '/images/hero-train-1200.webp' },
+  { name: 'Food', note: 'Markets, kitchens & good food', cardImage: '/images/interest-food.webp' },
+  { name: 'Culture', note: 'Heritage, temples & old towns', cardImage: '/images/sigiriya-1200.webp' },
+  { name: 'Adventure', note: 'Surf, hike & head outdoors', cardImage: '/images/interest-adventure.webp' },
+  { name: 'Local life', note: 'People, places & small discoveries', cardImage: '/images/interest-local-life.webp' },
+  { name: 'Nightlife', note: 'Music & evenings together', cardImage: '/images/interest-nightlife.webp' },
+  { name: 'Wellness', note: 'Quiet moments & a little reset', cardImage: '/images/interest-wellness.webp' },
 ].map(m => ({ ...m, image: interests.find(([name]) => name === m.name)![1] }));
 export const rhythms = [
   { value: 'Relaxed', title: 'Take it slow', note: 'One lovely thing. Time to linger.', beats: ['A slow breakfast', 'One good outing', 'An afternoon that’s yours'], mood: 'Room to slow down.' },

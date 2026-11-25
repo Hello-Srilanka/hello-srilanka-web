@@ -57,12 +57,10 @@
 .moment-caption>small{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#e8e6d6}
 .moment-caption>strong{font-size:clamp(18px,1.5vw,22px);font-weight:550;line-height:1.22}
 .moment-caption>span{font-size:14px;line-height:1.5;color:#e1e6d9}
+.moment-card .moment-caption{color:#fff;text-shadow:0 1px 2px #000,0 0 4px #000b}
+.moment-card .moment-caption>small,.moment-card .moment-caption>span{color:inherit}
 .moment-card .selection-mark,.stay-photo-card .selection-mark{height:22px;width:22px;top:10px;right:10px;background:#15362940;color:white;border:1px solid #fff9}
 .moment-card.selected .selection-mark,.stay-photo-card.selected .selection-mark{background:var(--sand);color:var(--jungle);border-color:var(--sand)}
-.moment-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:13px}
-.moment-tools>p{font-size:14px;color:#56674c;line-height:1.5}
-.moment-tools>button{font-size:14px;gap:6px}
-.turned{transform:rotate(180deg)}
 .discovery-actions{margin-top:24px;padding-top:23px}
 .discovery-actions .plan-primary{font-size:14px;gap:20px;min-height:52px}
 .first-step-note{display:flex;gap:7px;align-items:center;font-size:14px;color:var(--muted)}
@@ -156,14 +154,14 @@
   .discovery-content{padding:23px 23px 26px}.discovery-progress{margin-bottom:27px}.discovery-progress ol{gap:8px}.discovery-progress li{padding-bottom:9px}.discovery-progress button{flex-direction:column;align-items:start;gap:7px;font-size:14px}.discovery-progress button>span{width:18px;height:18px;font-size:14px}.discovery-progress button>b{font-size:14px}.discovery-progress>div{margin-top:10px;font-size:14px}.discovery-progress>div>span:first-child{font-size:14px;letter-spacing:0}
   .discovery-intro{margin-bottom:23px}.discovery-intro h1{font-size:38px;max-width:470px}.discovery-intro>.eyebrow{font-size:14px;margin-bottom:12px}.discovery-intro>p:last-child{font-size:14px;line-height:1.8;margin-top:13px}
   .moment-grid{grid-template-columns:1fr 1fr;gap:12px}.moment-card{height:183px}.moment-caption{left:11px;right:10px;bottom:14px;gap:7px}.moment-caption>small{font-size:14px;letter-spacing:.03em}.moment-caption>strong{font-size:18px;line-height:1.22}.moment-caption>span{font-size:14px;line-height:1.6}.moment-card .selection-mark{top:9px;right:9px;width:21px;height:21px}
-  .moment-tools{margin-top:13px;gap:12px}.moment-tools>p{font-size:14px;max-width:150px}.moment-tools>button{font-size:14px;gap:5px}.discovery-actions{gap:13px;padding-top:21px;margin-top:20px}.discovery-actions .plan-primary{font-size:14px;gap:12px;padding:14px 16px}.first-step-note{font-size:14px;max-width:90px;gap:6px;line-height:1.6}.first-step-note svg{width:12px}.discovery-actions .plan-back{font-size:14px;gap:6px}.discovery-content>.form-footnote{font-size:14px;margin-top:21px;line-height:1.7}
+  .discovery-actions{gap:13px;padding-top:21px;margin-top:20px}.discovery-actions .plan-primary{font-size:14px;gap:12px;padding:14px 16px}.first-step-note{font-size:14px;max-width:90px;gap:6px;line-height:1.6}.first-step-note svg{width:12px}.discovery-actions .plan-back{font-size:14px;gap:6px}.discovery-content>.form-footnote{font-size:14px;margin-top:21px;line-height:1.7}
   .rhythm-card{padding:18px 14px}.rhythm-heading{gap:10px}.rhythm-heading>svg{width:21px}.rhythm-heading strong{font-size:18px}.rhythm-heading small{font-size:14px;line-height:1.6}.rhythm-check{width:20px;height:20px}.rhythm-day{margin:20px 0 0 0;gap:11px}.rhythm-day>span{font-size:14px;gap:8px;line-height:1.6}.rhythm-day i{font-size:14px}.discovery-aside-note{font-size:14px;align-items:flex-start;gap:8px}.discovery-aside-note svg{width:13px;margin-top:2px}
   .date-choice-row{gap:10px}.date-choice-row>label{font-size:14px;min-height:68px;padding:12px;gap:7px;flex-wrap:wrap}.date-choice-row>label>svg{width:15px}.date-choice-row>label>svg:last-child:not(:first-child){width:12px}.duration-picks{gap:8px}.duration-picks>button{font-size:21px;padding:12px 5px}.duration-picks small{font-size:14px}.traveller-counters{padding:0 14px}.traveller-counter{padding:17px 0;gap:12px}.traveller-counter label{font-size:14px}.traveller-counter small{font-size:14px}.counter-controls{gap:5px}.counter-controls>button{height:34px;width:34px}.counter-controls>input{font-size:16px;width:30px}.discovery-details>summary{font-size:14px}.discovery-details>summary small{font-size:14px}.discovery-details>summary>svg{width:15px}
   .budget-invitation{padding:18px 15px;gap:14px}.budget-invitation>span{width:45px;height:45px;flex-shrink:0}.budget-invitation>p{font-size:14px}.budget-chapter .budget-grid{grid-template-columns:minmax(0,1fr) 96px;gap:12px}.budget-chapter #budget{font-size:23px;min-height:56px}.budget-chapter #currency{min-height:56px}.budget-chapter #budget::placeholder{font-size:14px}.budget-basis{gap:10px}.budget-basis>label{padding:15px 10px;gap:8px}.budget-basis strong{font-size:14px}.budget-basis small{font-size:14px}.budget-reassurance{gap:12px}.budget-reassurance strong{font-size:14px}.budget-reassurance p{font-size:14px}
   .stay-photo-card{height:145px}.stay-photo-card .moment-caption strong{font-size:16px}.help-choice{font-size:14px;padding:13px 11px;gap:9px}.help-choice>svg{width:16px}.discovery-content .transport-choice{font-size:14px;gap:8px;padding:12px 10px}.discovery-content .transport-choice>svg{width:17px}.discovery-content .transport-choice>svg:last-child:not(:first-child){width:12px}
   .brief-photos{height:157px}.brief-photos>span{font-size:14px;left:15px;bottom:14px;letter-spacing:.05em}.brief-photos>span>svg{width:13px}.brief-copy{padding:20px}.brief-copy>p:first-child{font-size:14px}.brief-copy h2{font-size:29px}.brief-copy>p:last-child{font-size:14px}.discovery-content .review-block{padding:13px 0 18px}.discovery-content .review-block h2{font-size:14px}.review-body .inline-edit{font-size:14px;margin-left:8px}
 }
-@media(max-width:360px){.discovery-content{padding-left:19px;padding-right:19px}.travel-postcard{padding-left:20px;padding-right:20px}.moment-card{height:170px}.moment-caption>strong{font-size:18px}.moment-caption>span{font-size:14px}.discovery-intro h1{font-size:34px}.discovery-progress ol{gap:5px}.discovery-progress button>b{font-size:14px}.moment-tools{gap:8px}.moment-tools>button{font-size:14px}.discovery-actions .plan-primary{font-size:14px;gap:9px;padding:13px 12px}.discovery-actions .plan-back{font-size:14px}.rhythm-heading strong{font-size:16px}.rhythm-heading small{font-size:14px}.date-choice-row>label{font-size:14px}.budget-basis>label{gap:6px;padding:12px 8px}.budget-basis strong{font-size:14px}.stay-photo-card .moment-caption strong{font-size:16px}.discovery-content .transport-choice{font-size:14px}}
+@media(max-width:360px){.discovery-content{padding-left:19px;padding-right:19px}.travel-postcard{padding-left:20px;padding-right:20px}.moment-card{height:170px}.moment-caption>strong{font-size:18px}.moment-caption>span{font-size:14px}.discovery-intro h1{font-size:34px}.discovery-progress ol{gap:5px}.discovery-progress button>b{font-size:14px}.discovery-actions .plan-primary{font-size:14px;gap:9px;padding:13px 12px}.discovery-actions .plan-back{font-size:14px}.rhythm-heading strong{font-size:16px}.rhythm-heading small{font-size:14px}.date-choice-row>label{font-size:14px}.budget-basis>label{gap:6px;padding:12px 8px}.budget-basis strong{font-size:14px}.stay-photo-card .moment-caption strong{font-size:16px}.discovery-content .transport-choice{font-size:14px}}
 @media(prefers-reduced-motion:reduce){.postcard-main,.postcard-inset{animation:none!important}.discovery-layout *{transition:none!important}}
 
 /* Keep the discovery journey within the viewport; only expanded details scroll. */
@@ -200,7 +198,6 @@
 .moment-card{height:clamp(115px,22dvh,200px)}
 .moment-caption{bottom:11px;gap:5px}
 .moment-caption>strong{font-size:clamp(18px,1.35vw,20px)}
-.moment-tools{margin-top:10px}
 .rhythm-choices{gap:9px}
 .rhythm-card{padding:12px 16px}
 .rhythm-day{margin-top:13px}
@@ -238,7 +235,6 @@
   .discovery-intro{margin-bottom:10px}.discovery-intro>.eyebrow{display:none}.discovery-intro h1{font-size:29px;line-height:1.12}.discovery-intro>p:last-child{font-size:14px;line-height:1.45;margin-top:6px}
   .moment-grid{grid-template-columns:1fr 1fr;gap:8px}.moment-card{height:clamp(85px,14dvh,125px)}
   .moment-caption{bottom:9px;left:9px;right:9px;gap:4px}.moment-caption>strong{font-size:17px}.moment-caption>small{font-size:14px}.moment-caption>span{display:none}.moment-card .selection-mark{width:19px;height:19px;top:6px;right:6px}
-  .moment-tools{margin-top:8px}.moment-tools>p{font-size:14px}.moment-tools>button{font-size:14px}
   .discovery-actions{gap:8px;margin-top:8px;padding-top:8px}.discovery-actions .plan-primary{font-size:14px;gap:8px;min-height:44px}.discovery-content>.form-footnote{font-size:14px;margin-top:6px}
   .rhythm-card{padding:10px 12px}.rhythm-heading strong{font-size:16px}.rhythm-day{margin:12px 0 0;gap:9px}.rhythm-day>span{font-size:14px;line-height:1.4}.discovery-aside-note{font-size:14px}
 }

@@ -1,7 +1,7 @@
 'use client';
 import Image from 'next/image';
-import { useState, type ReactNode } from 'react';
-import { Check, Coffee, Footprints, Zap, ArrowUpRight, ArrowLeft, Pencil, Plus, Minus, ChevronDown, Sun, CalendarDays, Heart } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Check, Coffee, Footprints, Zap, ArrowUpRight, ArrowLeft, Pencil, Plus, Minus, Sun, CalendarDays, Heart } from 'lucide-react';
 import { defaults, transports, stays, currencies, months, tripDates, travellers, groupBudget, money, type Preferences, type Errors } from '@/lib/planner/model';
 import { datesStep, discoverySteps, moments, personaliseStep, rhythms, reviewStep, travellersStep, journeyStory, discoveryErrors } from '@/lib/planner/discovery';
 import NationalityStep from './NationalityStep';
@@ -30,15 +30,9 @@ function Counter({ label, note, name, value, min, max, change, error }: { label:
   return <div className="traveller-counter"><div><label htmlFor={name}>{label}</label>{note && <small>{note}</small>}</div><div className="counter-controls"><button type="button" aria-label={`Fewer ${label.toLowerCase()}`} disabled={value <= min} onClick={() => change(value - 1)}><Minus size={16} /></button><input id={name} name={name} type="number" min={min} max={max} value={value} onChange={e => change(Math.min(max, Math.max(min, Number(e.target.value))))} aria-invalid={!!error} aria-describedby={error ? `${name}-error` : undefined} /><button type="button" aria-label={`More ${label.toLowerCase()}`} disabled={value >= max} onClick={() => change(value + 1)}><Plus size={16} /></button></div>{error && <p id={`${name}-error`} className="field-error">{error}</p>}</div>;
 }
 export default function PlanningForm({ p, step, furthest, editing, errors, update, go, next, generate, mode, saved, resume }: Props) {
-  const [showAll, setShowAll] = useState(false);
-  const shownMoments = moments.filter((m, i) => showAll || i < 6 || p.interests.includes(m.name));
   function toggleMoment(name: string) {
     const removing = p.interests.includes(name);
     update('interests', removing ? p.interests.filter(i => i !== name) : [...p.interests, name]);
-    // Collapsed extra cards disappear when deselected; keep keyboard focus in the chooser.
-    if (removing && !showAll && moments.findIndex(m => m.name === name) >= 6) {
-      requestAnimationFrame(() => document.getElementById('more-moments')?.focus());
-    }
   }
   const story = journeyStory(p);
   const validDates = !Object.keys(discoveryErrors(p, datesStep)).some(k => ['arrivalDate', 'departureDate', 'duration', 'month'].includes(k));
@@ -62,7 +56,24 @@ export default function PlanningForm({ p, step, furthest, editing, errors, updat
         <div className="discovery-fields" key={step}>
         {!!Object.keys(errors).length && <div className="plan-error" role="alert"><strong>A little more detail, please.</strong><ul>{Object.entries(errors).map(([key, message]) => <li key={key}><a href={`#${key}`}>{message}</a></li>)}</ul></div>}
         {step === 0 && <NationalityStep p={p} errors={errors} update={update} />}
-        {step === 1 && <div className="moments-section"><fieldset className="interest-photo-fieldset" id="interests" aria-describedby={errors.interests ? 'interests-error' : 'moments-hint'}><legend className="sr-only">Choose your interests</legend><div className="moment-grid">{shownMoments.map(m => <label className={`moment-card ${p.interests.includes(m.name) ? 'selected' : ''}`} key={m.name}><input type="checkbox" aria-label={m.name} aria-invalid={!!errors.interests} checked={p.interests.includes(m.name)} onChange={() => toggleMoment(m.name)} /><Image src={`/images/${m.image}.webp`} alt="" fill sizes="(max-width: 760px) 44vw, (max-width: 1200px) 24vw, 17vw" /><span className="moment-shade" /><span className="selection-mark">{p.interests.includes(m.name) ? <Check size={14} /> : <Plus size={14} />}</span><span className="moment-caption"><small>{m.name}</small><strong>{m.title}</strong><span>{m.note}</span></span></label>)}</div></fieldset><div className="moment-tools"><button type="button" className="plan-text" id="more-moments" aria-expanded={showAll} onClick={() => setShowAll(v => !v)}>{showAll ? 'A little less' : 'More ways to explore'}<ChevronDown size={15} className={showAll ? 'turned' : ''} /></button></div>{errors.interests && <p id="interests-error" className="field-error">{errors.interests}</p>}</div>}
+        {step === 1 && <div className="moments-section">
+          <fieldset className="interest-photo-fieldset" id="interests" aria-describedby={errors.interests ? 'interests-error' : undefined}>
+            <legend className="sr-only">Choose your interests</legend>
+            <div className="moment-grid">
+              {moments.map(moment => {
+                const selected = p.interests.includes(moment.name);
+                return <label className={`moment-card ${selected ? 'selected' : ''}`} key={moment.name}>
+                  <input type="checkbox" aria-label={moment.name} aria-invalid={!!errors.interests} checked={selected} onChange={() => toggleMoment(moment.name)} />
+                  <Image src={moment.cardImage} alt="" fill unoptimized />
+                  <span className="moment-shade" />
+                  <span className="selection-mark">{selected ? <Check size={14} /> : <Plus size={14} />}</span>
+                  <span className="moment-caption"><small>{moment.name}</small><span>{moment.note}</span></span>
+                </label>;
+              })}
+            </div>
+          </fieldset>
+          {errors.interests && <p id="interests-error" className="field-error">{errors.interests}</p>}
+        </div>}
         {step === 2 && <fieldset className="choice-fieldset" id="pace"><legend className="sr-only">Your travel pace</legend><div className="rhythm-choices">{rhythms.map((rhythm, i) => { const Icon = [Coffee, Footprints, Zap][i]; return <label key={rhythm.value} className={`rhythm-card ${p.pace === rhythm.value ? 'selected' : ''}`}><input type="radio" name="pace" aria-label={rhythm.value} checked={p.pace === rhythm.value} onChange={() => update('pace', rhythm.value)} /><div className="rhythm-heading"><Icon size={24} strokeWidth={1.4} /><div><strong>{rhythm.title}</strong><small>{rhythm.value} pace · {rhythm.note}</small></div><span className="rhythm-check">{p.pace === rhythm.value && <Check size={14} />}</span></div><div className="rhythm-day">{rhythm.beats.map((beat, j) => <span key={beat}><i>{['AM', 'MIDDAY', 'PM'][j]}</i>{beat}</span>)}</div></label>; })}</div></fieldset>}
         {step === datesStep && <div className="question-stack">
           <fieldset className="choice-fieldset"><legend className="sr-only">Your dates</legend><div className="date-choice-row"><label className={!p.undecided ? 'selected' : ''}><input type="radio" name="dateMode" checked={!p.undecided} onChange={() => update('undecided', false)} /><CalendarDays size={18} /> I have dates in mind{!p.undecided && <Check size={14} />}</label><label className={p.undecided ? 'selected' : ''}><input type="radio" name="dateMode" checked={p.undecided} onChange={() => update('undecided', true)} /><Sun size={18} /> I haven’t chosen dates{p.undecided && <Check size={14} />}</label></div></fieldset>
