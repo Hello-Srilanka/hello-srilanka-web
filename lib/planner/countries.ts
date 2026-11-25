@@ -4,11 +4,7 @@ const codes = `AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG
 const regionNames = new Intl.DisplayNames(['en-GB'], { type: 'region' });
 const featuredCodes = new Set(['IN', 'GB', 'CN', 'DE', 'AU']);
 
-export function countryFlag(code: string) {
-  return String.fromCodePoint(...[...code].map(letter => letter.charCodeAt(0) + 127397));
-}
-
 export const otherCountries = codes.split(' ')
   .filter(code => !featuredCodes.has(code))
-  .map(code => ({ code, name: regionNames.of(code) || code, flag: countryFlag(code) }))
+  .map(code => ({ code, name: regionNames.of(code) || code }))
   .sort((a, b) => a.name.localeCompare(b.name, 'en'));

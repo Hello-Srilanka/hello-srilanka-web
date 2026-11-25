@@ -60,10 +60,16 @@ test('saved nationality and previous opt-ins do not influence generated itinerar
   assert.equal(restored.useNationalitySuggestions, false);
   assert.equal(restored.nationality, '');
 });
-test('other country choices include searchable countries and flags', () => {
-  const { countryFlag, otherCountries } = require('../lib/planner/countries.ts');
-  assert.equal(countryFlag('IN'), '🇮🇳');
-  assert.ok(otherCountries.some(country => country.name === 'Sri Lanka' && country.flag === '🇱🇰'));
+test('nationality choices include searchable countries and ship SVG flags', () => {
+  const { otherCountries } = require('../lib/planner/countries.ts');
+  const { supportedNationalities } = require('../lib/planner/nationality.ts');
+  const flagStyles = fs.readFileSync(require.resolve('flag-icons/css/flag-icons.min.css'), 'utf8');
+  for (const { code } of [...supportedNationalities, ...otherCountries]) {
+    const isoCode = code.toLowerCase();
+    assert.ok(flagStyles.includes(`.fi-${isoCode}{`), `Missing flag style for ${code}`);
+    assert.ok(require.resolve(`flag-icons/flags/4x3/${isoCode}.svg`));
+  }
+  assert.ok(otherCountries.some(country => country.name === 'Sri Lanka' && country.code === 'LK'));
   assert.ok(otherCountries.some(country => country.name === 'Canada'));
   assert.equal(otherCountries.some(country => country.code === 'IN'), false);
   assert.equal(otherCountries.length > 200, true);

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Check, Search, X } from 'lucide-react';
-import { countryFlag, otherCountries } from '@/lib/planner/countries';
+import { otherCountries } from '@/lib/planner/countries';
 import { supportedNationalities } from '@/lib/planner/nationality';
 import type { Errors, Preferences } from '@/lib/planner/model';
 
@@ -10,6 +10,10 @@ type Props = {
   errors: Errors;
   update: <K extends keyof Preferences>(key: K, value: Preferences[K]) => void;
 };
+
+function CountryFlag({ code }: { code: string }) {
+  return <span className={`country-flag fi fi-${code.toLowerCase()}`} aria-hidden="true" />;
+}
 
 export default function NationalityStep({ p, errors, update }: Props) {
   const [query, setQuery] = useState('');
@@ -52,10 +56,10 @@ export default function NationalityStep({ p, errors, update }: Props) {
       <div className="nationality-grid">
         {supportedNationalities.map(country => <label key={country.code} className={`nationality-card ${p.nationality === country.name ? 'selected' : ''}`}>
           <input type="radio" name="nationality" value={country.name} checked={p.nationality === country.name} onChange={() => update('nationality', country.name)} aria-label={country.name} />
-          <span className="nationality-flag" aria-hidden="true">{countryFlag(country.code)}</span><strong>{country.name}</strong><span className="nationality-check">{p.nationality === country.name && <Check size={15} />}</span>
+          <span className="nationality-card-icon"><CountryFlag code={country.code} /></span><strong>{country.name}</strong><span className="nationality-check">{p.nationality === country.name && <Check size={15} />}</span>
         </label>)}
         <button ref={otherButtonRef} type="button" id="otherNationality" className={`nationality-card nationality-other ${p.nationality === 'Other' ? 'selected' : ''}`} aria-haspopup="dialog" aria-pressed={p.nationality === 'Other'} aria-describedby={errors.otherNationality ? 'otherNationality-error' : undefined} onClick={() => { setQuery(''); setSearchOpen(true); }}>
-          <span className="nationality-other-icon" aria-hidden="true">{p.nationality === 'Other' && selectedOther ? selectedOther.flag : <Search size={28} />}</span><strong>Other</strong><small>{p.nationality === 'Other' && p.otherNationality ? p.otherNationality : 'Search your country'}</small><span className="nationality-check">{p.nationality === 'Other' && <Check size={15} />}</span>
+          <span className="nationality-card-icon" aria-hidden="true">{p.nationality === 'Other' && selectedOther ? <CountryFlag code={selectedOther.code} /> : <Search size={28} />}</span><strong>Other</strong><small>{p.nationality === 'Other' && p.otherNationality ? p.otherNationality : 'Search your country'}</small><span className="nationality-check">{p.nationality === 'Other' && <Check size={15} />}</span>
         </button>
       </div>
       {errors.nationality && <p className="field-error" id="nationality-error">{errors.nationality}</p>}
@@ -67,7 +71,7 @@ export default function NationalityStep({ p, errors, update }: Props) {
       <label htmlFor="countrySearch">Search by country name</label>
       <input ref={searchRef} id="countrySearch" type="search" autoComplete="off" value={query} placeholder="Start typing a country name" onChange={event => setQuery(event.target.value)} aria-controls="country-results" />
       <div className="nationality-results" id="country-results" aria-label="Matching countries">
-        {matches.length ? matches.map(country => <button type="button" key={country.code} onClick={() => chooseOther(country.name)}><span aria-hidden="true">{country.flag}</span>{country.name}</button>) : <p>No matching country found.</p>}
+        {matches.length ? matches.map(country => <button type="button" key={country.code} onClick={() => chooseOther(country.name)}><CountryFlag code={country.code} />{country.name}</button>) : <p>No matching country found.</p>}
       </div>
     </dialog>}
 
