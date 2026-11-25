@@ -1,10 +1,11 @@
 import { dayCount, interests, validatePreferences, type Errors, type Preferences } from './model';
 
-export const discoverySteps = ['Nationality', 'Your interests', 'Your pace', 'Your dates', 'Your travellers', 'Review'];
+export const discoverySteps = ['Nationality', 'Your interests', 'Your pace', 'Your dates', 'Your travellers', 'Personalise', 'Review'];
 export const datesStep = 3;
 export const travellersStep = 4;
+export const personaliseStep = 5;
 export const reviewStep = discoverySteps.length - 1;
-export const flowVersion = 5;
+export const flowVersion = 6;
 export const moments = [
   { name: 'Nature', title: 'Lose yourself in the green', note: 'Tea hills, trails & fresh air' },
   { name: 'Beaches', title: 'Let the sea set the pace', note: 'Bare feet & salt air' },
@@ -32,12 +33,17 @@ export function discoveryErrors(p: Preferences, step: number): Errors {
     const { accessibility } = validatePreferences(p, 3);
     return Object.fromEntries(Object.entries({ adults, children, ages, accessibility }).filter(([, error]) => error));
   }
+  if (step === personaliseStep) {
+    const { budget, currency, accommodation, transport, mustVisit } = validatePreferences(p, 3);
+    return Object.fromEntries(Object.entries({ budget, currency, accommodation, transport, mustVisit }).filter(([, error]) => error));
+  }
   return validatePreferences(p);
 }
 export function restoreDiscoveryStep(step: unknown, version: unknown) {
   if (!Number.isInteger(step)) return 0;
   const n = step as number;
   if (version === flowVersion) return Math.max(0, Math.min(reviewStep, n));
+  if (version === 5) return [0, 1, 2, datesStep, travellersStep, reviewStep][n] ?? 0;
   if (version === 4) return [0, 1, 2, datesStep, reviewStep][n] ?? 0;
   if (version === 3) return [1, 2, datesStep, reviewStep][n] ?? 0;
   if (version === 2) return [1, 2, datesStep, reviewStep, reviewStep, reviewStep][n] ?? 0;

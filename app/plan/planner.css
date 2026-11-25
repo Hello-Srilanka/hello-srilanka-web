@@ -117,10 +117,6 @@
 .discovery-details[open]>summary>svg{transform:rotate(45deg)}
 .discovery-details>summary:focus-visible{outline:3px solid var(--saffron);outline-offset:4px}
 .details-fields{display:grid;gap:22px;padding:5px 0 22px}
-.personalise-details{border:1px solid #c9d2bd;border-radius:5px;background:#f8f7ef;padding:0 20px}
-.personalise-details>summary{font-size:16px;font-weight:650}
-.personalise-details .details-fields{gap:18px}
-.personalise-details .budget-chapter{min-width:0}
 .budget-invitation{display:flex;align-items:center;gap:20px;margin:0 0 7px;padding:22px;background:#eae6d5;border-radius:4px}
 .budget-invitation>span{width:52px;height:52px;display:grid;place-items:center;border-radius:50%;border:1px solid #c9bb99;color:var(--cinnamon)}
 .budget-invitation>p{font-size:16px;color:#70715e;line-height:1.9}.budget-invitation strong{color:var(--jungle);font-weight:550}
@@ -156,8 +152,7 @@
 @media(min-width:1600px){.discovery-content{padding-top:44px}.discovery-progress{margin-bottom:46px}.moment-card{height:225px}.travel-postcard{padding-top:48px}.postcard-photos{height:440px}}
 @media(max-width:1200px) and (min-width:761px){.discovery-content{padding-left:30px;padding-right:30px}.discovery-progress li{flex-basis:auto}.discovery-progress button{gap:5px;font-size:14px}.discovery-progress button>span{width:17px;height:17px;font-size:14px}.moment-grid{grid-template-columns:1fr 1fr}.moment-card{height:170px}.postcard-copy h2{font-size:34px}.postcard-inset{width:53%;height:46%}.postcard-bottom{align-items:start;flex-direction:column;gap:12px}.postcard-bottom>span:last-child{text-align:left}.discovery-content .plan-primary{font-size:14px;gap:12px;padding-left:16px;padding-right:16px}.date-choice-row>label{font-size:14px;gap:7px}.rhythm-heading strong{font-size:16px}}
 @media(max-width:760px){
-  .personalise-details{padding:0 14px}
-  .personalise-details .field-grid:not(.budget-grid){grid-template-columns:1fr}
+  .personalise-fields .field-grid:not(.budget-grid){grid-template-columns:1fr}
   .discovery-content{padding:23px 23px 26px}.discovery-progress{margin-bottom:27px}.discovery-progress ol{gap:8px}.discovery-progress li{padding-bottom:9px}.discovery-progress button{flex-direction:column;align-items:start;gap:7px;font-size:14px}.discovery-progress button>span{width:18px;height:18px;font-size:14px}.discovery-progress button>b{font-size:14px}.discovery-progress>div{margin-top:10px;font-size:14px}.discovery-progress>div>span:first-child{font-size:14px;letter-spacing:0}
   .discovery-intro{margin-bottom:23px}.discovery-intro h1{font-size:38px;max-width:470px}.discovery-intro>.eyebrow{font-size:14px;margin-bottom:12px}.discovery-intro>p:last-child{font-size:14px;line-height:1.8;margin-top:13px}
   .moment-grid{grid-template-columns:1fr 1fr;gap:12px}.moment-card{height:183px}.moment-caption{left:11px;right:10px;bottom:14px;gap:7px}.moment-caption>small{font-size:14px;letter-spacing:.03em}.moment-caption>strong{font-size:18px;line-height:1.22}.moment-caption>span{font-size:14px;line-height:1.6}.moment-card .selection-mark{top:9px;right:9px;width:21px;height:21px}
@@ -239,7 +234,7 @@
   .planner-app:has(.discovery-layout) .planner-header{height:52px}
   .planner-app:has(.discovery-layout) .sample-banner{font-size:14px;line-height:1.4;padding:5px 16px}
   .discovery-content{padding:12px 18px 9px}
-  .discovery-progress{margin-bottom:12px}.discovery-progress ol{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));row-gap:8px}.discovery-progress button{flex-direction:row;gap:4px;min-height:24px}.discovery-progress button>span{display:none}.discovery-progress li{padding-bottom:5px}.discovery-progress>div{display:none}
+  .discovery-progress{margin-bottom:12px}.discovery-progress ol{display:grid;grid-template-columns:repeat(4,minmax(max-content,1fr));row-gap:8px}.discovery-progress button{flex-direction:row;gap:4px;min-height:24px}.discovery-progress button>span{display:none}.discovery-progress li{padding-bottom:5px}.discovery-progress>div{display:none}
   .discovery-intro{margin-bottom:10px}.discovery-intro>.eyebrow{display:none}.discovery-intro h1{font-size:29px;line-height:1.12}.discovery-intro>p:last-child{font-size:14px;line-height:1.45;margin-top:6px}
   .moment-grid{grid-template-columns:1fr 1fr;gap:8px}.moment-card{height:clamp(85px,14dvh,125px)}
   .moment-caption{bottom:9px;left:9px;right:9px;gap:4px}.moment-caption>strong{font-size:17px}.moment-caption>small{font-size:14px}.moment-caption>span{display:none}.moment-card .selection-mark{width:19px;height:19px;top:6px;right:6px}

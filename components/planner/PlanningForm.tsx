@@ -1,9 +1,9 @@
 'use client';
 import Image from 'next/image';
 import { useState, type ReactNode } from 'react';
-import { Check, Coffee, Footprints, Zap, ArrowUpRight, ArrowLeft, Pencil, Plus, Minus, ChevronDown, Sun, Sparkles, CalendarDays, Heart } from 'lucide-react';
-import { transports, stays, currencies, months, tripDates, travellers, groupBudget, money, validatePreferences, type Preferences, type Errors } from '@/lib/planner/model';
-import { datesStep, discoverySteps, moments, rhythms, reviewStep, travellersStep, journeyStory, discoveryErrors } from '@/lib/planner/discovery';
+import { Check, Coffee, Footprints, Zap, ArrowUpRight, ArrowLeft, Pencil, Plus, Minus, ChevronDown, Sun, CalendarDays, Heart } from 'lucide-react';
+import { defaults, transports, stays, currencies, months, tripDates, travellers, groupBudget, money, type Preferences, type Errors } from '@/lib/planner/model';
+import { datesStep, discoverySteps, moments, personaliseStep, rhythms, reviewStep, travellersStep, journeyStory, discoveryErrors } from '@/lib/planner/discovery';
 import NationalityStep from './NationalityStep';
 import TravelPostcard from './TravelPostcard';
 
@@ -18,7 +18,8 @@ const stepContent = [
   { eyebrow: 'YOUR INTERESTS', title: 'What would you like to do?', next: 'Choose my pace' },
   { eyebrow: 'YOUR PACE', title: 'What pace suits you?', next: 'Add trip details' },
   { eyebrow: 'YOUR TRIP DATES', title: 'When are you travelling?', next: 'Add travellers' },
-  { eyebrow: 'YOUR TRAVELLERS', title: 'Who is travelling?', next: 'Review my trip' },
+  { eyebrow: 'YOUR TRAVELLERS', title: 'Who is travelling?', next: 'Personalise my trip' },
+  { eyebrow: 'TRIP PREFERENCES', title: 'Personalise further', next: 'Review my trip' },
   { eyebrow: 'YOUR TRIP', title: 'Review your trip.', next: 'Create my itinerary' },
 ];
 
@@ -30,7 +31,6 @@ function Counter({ label, note, name, value, min, max, change, error }: { label:
 }
 export default function PlanningForm({ p, step, furthest, editing, errors, update, go, next, generate, mode, saved, resume }: Props) {
   const [showAll, setShowAll] = useState(false);
-  const [personaliseOpen, setPersonaliseOpen] = useState(false);
   const shownMoments = moments.filter((m, i) => showAll || i < 6 || p.interests.includes(m.name));
   function toggleMoment(name: string) {
     const removing = p.interests.includes(name);
@@ -42,8 +42,13 @@ export default function PlanningForm({ p, step, furthest, editing, errors, updat
   }
   const story = journeyStory(p);
   const validDates = !Object.keys(discoveryErrors(p, datesStep)).some(k => ['arrivalDate', 'departureDate', 'duration', 'month'].includes(k));
-  const validBudget = p.budget && !validatePreferences(p, 3).budget;
-  const personaliseErrors = ['budget', 'currency', 'accommodation', 'transport', 'mustVisit'].some(key => !!errors[key]);
+  const { budget: budgetError, currency: currencyError } = discoveryErrors(p, personaliseStep);
+  const budget = groupBudget(p);
+  const budgetLabel = budget !== null && !budgetError && !currencyError ? money(budget, p.currency) : null;
+  const preferredCurrency = p.currency !== defaults.currency ? p.currency : null;
+  const hotel = p.accommodation !== defaults.accommodation ? p.accommodation : null;
+  const transport = p.transport !== defaults.transport ? p.transport : null;
+  const mustVisit = p.mustVisit.trim();
   const props = (name: keyof Preferences) => ({ id: name, name, 'aria-invalid': !!errors[name], 'aria-describedby': errors[name] ? `${name}-error` : undefined });
   const text = (name: 'arrivalDate' | 'departureDate', label: string, type = 'text', hint?: string) => <Field key={name} name={name} label={label} error={errors[name]} hint={hint}><input {...props(name)} type={type} value={p[name]} onChange={e => update(name, e.target.value)} maxLength={160} {...(type === 'date' ? { min: new Date().toISOString().slice(0, 10) } : {})} /></Field>;
   const { eyebrow, title, next: continueLabel } = stepContent[step];
@@ -73,6 +78,30 @@ export default function PlanningForm({ p, step, furthest, editing, errors, updat
             <textarea {...props('accessibility')} aria-describedby={errors.accessibility ? 'accessibility-hint accessibility-error' : 'accessibility-hint'} maxLength={600} rows={2} placeholder="For example: limited stairs or vegetarian meals" value={p.accessibility} onChange={e => update('accessibility', e.target.value)} />
           </Field>
         </div>}
+        {step === personaliseStep && <div className="question-stack personalise-fields">
+          <div className="budget-chapter">
+            <div className="field-grid budget-grid">
+              <Field name="budget" label="Total budget for everyone (optional)" error={errors.budget} hint="Leave blank if undecided. Covers your trip in Sri Lanka; international flights are excluded.">
+                <input {...props('budget')} aria-describedby={errors.budget ? 'budget-hint budget-error' : 'budget-hint'} inputMode="decimal" type="text" placeholder="No budget yet" value={p.budget} maxLength={12} onChange={e => update('budget', e.target.value)} />
+              </Field>
+              <Field name="currency" label="Currency" error={errors.currency}>
+                <select {...props('currency')} value={p.currency} onChange={e => update('currency', e.target.value)}>{currencies.map(c => <option key={c}>{c}</option>)}</select>
+              </Field>
+            </div>
+            {budgetLabel && <p className="field-hint">Group target: {budgetLabel}.</p>}
+          </div>
+          <div className="field-grid">
+            <Field name="accommodation" label="Hotel preference (optional)" error={errors.accommodation}>
+              <select {...props('accommodation')} value={p.accommodation} onChange={e => update('accommodation', e.target.value)}>{stays.map(value => <option key={value}>{value}</option>)}</select>
+            </Field>
+            <Field name="transport" label="Transport preference (optional)" error={errors.transport}>
+              <select {...props('transport')} value={p.transport} onChange={e => update('transport', e.target.value)}>{transports.map(value => <option key={value}>{value}</option>)}</select>
+            </Field>
+          </div>
+          <Field name="mustVisit" label="Any places you do not want to miss? (optional)" error={errors.mustVisit}>
+            <textarea {...props('mustVisit')} maxLength={600} rows={2} placeholder="For example: Ella or Galle" value={p.mustVisit} onChange={e => update('mustVisit', e.target.value)} />
+          </Field>
+        </div>}
         {step === reviewStep && <div className="review-stack">
           <div className="journey-brief">
             <div className="brief-photos" aria-hidden="true">{(p.interests.length ? p.interests.slice(0, 3).map(i => moments.find(m => m.name === i)!) : moments.slice(0, 3)).filter(Boolean).map(m => <div key={m.name}><Image src={"/images/" + m.image + ".webp"} alt="" fill sizes="(max-width: 760px) 30vw, 20vw" /></div>)}<span><Heart size={16} /> MADE OF YOUR FAVOURITE THINGS</span></div>
@@ -94,33 +123,13 @@ export default function PlanningForm({ p, step, furthest, editing, errors, updat
             <p>{travellers(p)}{p.children > 0 && ' · Ages ' + p.ages.join(', ')}</p>
             {p.accessibility && <p><strong>Plan around:</strong> {p.accessibility}</p>}
           </ReviewBlock>
-          <details className="discovery-details personalise-details" open={personaliseOpen || personaliseErrors} onToggle={event => setPersonaliseOpen(event.currentTarget.open)}>
-            <summary><span>Personalise further<small>Optional budget, hotels, transport and must-visits</small></span><Plus size={17} /></summary>
-            <div className="details-fields">
-              <div className="budget-chapter">
-                <div className="field-grid budget-grid">
-                  <Field name="budget" label="Total budget for everyone (optional)" error={errors.budget} hint="Leave blank if undecided. Covers your trip in Sri Lanka; international flights are excluded.">
-                    <input {...props('budget')} inputMode="decimal" type="text" placeholder="No budget yet" value={p.budget} maxLength={12} onChange={e => update('budget', e.target.value)} />
-                  </Field>
-                  <Field name="currency" label="Currency" error={errors.currency}>
-                    <select {...props('currency')} value={p.currency} onChange={e => update('currency', e.target.value)}>{currencies.map(c => <option key={c}>{c}</option>)}</select>
-                  </Field>
-                </div>
-                {validBudget && <p className="field-hint">Group target: {money(groupBudget(p)!, p.currency)}.</p>}
-              </div>
-              <div className="field-grid">
-                <Field name="accommodation" label="Hotel preference (optional)" error={errors.accommodation}>
-                  <select {...props('accommodation')} value={p.accommodation} onChange={e => update('accommodation', e.target.value)}>{stays.map(value => <option key={value}>{value}</option>)}</select>
-                </Field>
-                <Field name="transport" label="Transport preference (optional)" error={errors.transport}>
-                  <select {...props('transport')} value={p.transport} onChange={e => update('transport', e.target.value)}>{transports.map(value => <option key={value}>{value}</option>)}</select>
-                </Field>
-              </div>
-              <Field name="mustVisit" label="Any places you do not want to miss? (optional)" error={errors.mustVisit}>
-                <textarea {...props('mustVisit')} maxLength={600} rows={2} placeholder="For example: Ella or Galle" value={p.mustVisit} onChange={e => update('mustVisit', e.target.value)} />
-              </Field>
-            </div>
-          </details>
+          <ReviewBlock title="Travel preferences" edit={() => go(personaliseStep)}>
+            {budgetLabel ? <p><strong>Budget for everyone:</strong> {budgetLabel}</p> : preferredCurrency && <p><strong>Currency:</strong> {preferredCurrency}</p>}
+            {hotel && <p><strong>Hotel:</strong> {hotel}</p>}
+            {transport && <p><strong>Transport:</strong> {transport}</p>}
+            {mustVisit && <p><strong>Must-visits:</strong> {mustVisit}</p>}
+            {!budgetLabel && !preferredCurrency && !hotel && !transport && !mustVisit && <p>No optional preferences added.</p>}
+          </ReviewBlock>
         </div>}
         </div>
         <div className="form-actions discovery-actions">{step > 0 ? <button className="plan-back" type="button" onClick={() => go(editing ? reviewStep : step - 1)}><ArrowLeft size={17} />{editing ? 'Back to review' : 'Back'}</button> : <span className="first-step-note"> </span>}<button className="plan-primary" type="submit" disabled={step === reviewStep && mode === 'checking'}>{nextLabel}<ArrowUpRight size={19} /></button></div>
