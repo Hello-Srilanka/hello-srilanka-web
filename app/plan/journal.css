@@ -25,6 +25,23 @@ html:has(.planner-app .journal-page){scroll-padding-top:0}
 .journal-essentials p{display:flex;gap:8px;align-items:baseline}
 .journal-essentials svg{flex-shrink:0;align-self:center;color:#87522f}
 
+.journal-route-preview{margin-top:18px;padding:16px 20px;border:1px solid #d4dccc;border-radius:11px;background:#fbfaf4}
+.journal-route-preview h2{margin:0 0 10px;font-size:20px;font-weight:700;letter-spacing:-.025em;line-height:1.25}
+.journal-route-map{margin:0;border:1px solid #dce4da;border-radius:8px;background:#edf2ec;overflow:hidden}
+.journal-route-map svg{display:block;width:100%;height:auto;max-width:280px;margin:auto}
+.journal-route-map figcaption{padding:6px 10px;border-top:1px solid #dce4da;text-align:center;font-size:12px;line-height:1.5;color:#485c49}
+.journal-route-map a{text-decoration:underline;text-underline-offset:2px}
+.journal-route-island{fill:#cadbbd;stroke:#809c7b;stroke-width:1}
+.journal-route-leg{fill:none;stroke:#476c52;stroke-width:2;stroke-linecap:round;stroke-dasharray:2 5}
+.journal-route-leader{stroke:#537257;stroke-width:1}
+.journal-route-anchor{fill:#38593d}
+.journal-route-pin rect{fill:var(--jungle);stroke:#f8f8ef;stroke-width:1.5}
+.journal-route-pin text{fill:#fffdf7;font-size:13px;font-weight:700}
+@media(max-width:640px){
+ .journal-route-preview{margin-top:14px;padding:12px}
+ .journal-route-map svg{max-width:240px}
+}
+
 .journal-itinerary{margin-top:24px}
 .journal-days-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 4px}
 .journal-days-heading h2,.journal-details>h2{font-size:26px;line-height:1.2;font-weight:700;letter-spacing:-.03em}

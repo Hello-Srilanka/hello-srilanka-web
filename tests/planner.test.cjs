@@ -8,9 +8,53 @@ require.extensions['.ts'] = (mod, filename) => mod._compile(ts.transpileModule(f
 const { defaults, dayCount, dayDate, validatePreferences, readPreferences, groupBudget, itineraryRequestPreferences } = require('../lib/planner/model.ts');
 const { sampleDraft } = require('../lib/planner/sample.ts');
 const { finalize } = require('../lib/planner/validation.ts');
+const { itineraryRoute } = require('../lib/planner/trip-route.ts');
 const p = { ...defaults, undecided: true, interests: ['Nature', 'Food'] };
 const source = { id: 's1', title: 'Provider', url: 'https://example.com/travel', retrievedAt: new Date().toISOString() };
 const finish = (draft, prefs = p, sources = [], mode = 'sample') => finalize(draft, prefs, sources, 'test-id', mode);
+test('trip route groups consecutive nights and preserves return visits and unmapped stops', () => {
+  const { days } = sampleDraft(p);
+  const bases = ['Kandy [s1]', 'Kandy, Sri Lanka', 'Sinharagama', 'Kandy', 'Ella', 'Ella'];
+  days.forEach((day, index) => { day.overnight = bases[index] ?? null; });
+  days.at(-1).endLocation = 'CMB';
+  const route = itineraryRoute({ days });
+  assert.deepEqual(route.map(({ name, detail }) => [name, detail]), [
+    [p.arrival, 'Arrival'], ['Kandy', '2 nights'], ['Sinharagama', '1 night'], ['Kandy', '1 night'], ['Ella', '2 nights'], ['CMB', 'Departure'],
+  ]);
+  assert.equal(route[2].point, null);
+  assert.deepEqual(route[1].point, route[3].point);
+  assert.deepEqual(route[0].point, route.at(-1).point);
+  assert.ok(route[4].point.x > route[1].point.x);
+});
+test('trip route includes a same-day destination without inventing an overnight', () => {
+  const { days } = sampleDraft({ ...p, duration: 1 });
+  days[0].destination = 'Negombo';
+  const route = itineraryRoute({ days });
+  assert.deepEqual(route.map(stop => stop.detail), ['Arrival', 'Day visit', 'Departure']);
+  assert.ok(route[1].point);
+});
+test('trip route plots a saved hotel stay at its city while retaining the hotel name', () => {
+  const { days } = sampleDraft({ ...p, duration: 4 });
+  for (const day of days.slice(0, -1)) {
+    day.destination = 'Colombo';
+    day.overnight = 'The Kingsbury Colombo';
+    day.stay.name = 'The Kingsbury Colombo [s1]';
+  }
+  days[1].destination = 'Kandy';
+  const route = itineraryRoute({ days });
+  assert.equal(route[1].name, 'The Kingsbury Colombo');
+  assert.equal(route[1].detail, '3 nights');
+  assert.equal(route[1].mapArea, 'Colombo');
+  assert.deepEqual(route[1].point, itineraryRoute({ days: [{ ...days[0], overnight: 'Colombo' }] })[1].point);
+
+  for (const day of days.slice(0, -1)) {
+    day.overnight = 'Unmapped Guest House';
+    day.stay.name = 'Unmapped Guest House';
+  }
+  assert.equal(itineraryRoute({ days })[1].point, null, 'conflicting destinations do not place a hotel without a city in its name');
+  days[1].destination = 'Colombo';
+  assert.equal(itineraryRoute({ days })[1].mapArea, 'Colombo', 'consistent overnight destinations can supply the area');
+});
 test('validates dates, children, bounds and total group budget', () => {
   assert.deepEqual(validatePreferences(p), {});
   assert.equal(dayCount({ ...p, undecided: false, arrivalDate: '2027-01-01', departureDate: '2027-01-07' }), 7);

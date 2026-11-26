@@ -10,6 +10,7 @@ import { readCitations } from '@/lib/planner/citations';
 import type { ExportSelection } from '@/lib/planner/export';
 import ExportPreview from './ExportPreview';
 import RevisionDialog from './RevisionDialog';
+import TripRoute from './TripRoute';
 
 function SourceLinks({ ids, sources }: { ids: string[]; sources: Map<string, Source> }) {
   const found = [...new Set(ids)].flatMap(id => sources.get(id) ?? []);
@@ -95,7 +96,6 @@ export default function ItineraryView({ itinerary, newTrip }: { itinerary: Itine
         <li>{p.pace} pace</li>
       </ul>
       <div className="journal-essentials">
-        {destinations.length > 0 && <p><MapPin size={16} aria-hidden="true" /><span>{destinations.join(' → ')}</span></p>}
         {firstStay && <p><BedDouble size={17} aria-hidden="true" /><span><strong>{destinations.length > 1 ? 'First suggested stay' : 'Suggested stay'}</strong> · {readCitations(firstStay.name).text}</span></p>}
       </div>
       {t.revision && <p className="journal-revision-version">{t.revision.dayNumber === null ? 'Whole-trip revision' : `Day ${t.revision.dayNumber} revision`} · {previous
@@ -103,6 +103,8 @@ export default function ItineraryView({ itinerary, newTrip }: { itinerary: Itine
         : <Link href={`/account/itineraries/${t.revision.originalId}`}>View previous version</Link>}</p>}
       {newer && <p className="journal-revision-version"><button type="button" onClick={() => showVersion(newer)}>View newer revision</button></p>}
     </header>
+
+    <TripRoute days={t.days} />
 
     <section className="journal-itinerary" aria-labelledby="journal-itinerary-heading">
       <div className="journal-days-heading">
